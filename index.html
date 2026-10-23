@@ -150,6 +150,7 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 <p>Pick a level to start on. Scores from test games are not saved.</p>
 <div class="opts"><button class="opt" data-lv="1">Level 1</button><button class="opt" data-lv="2">Level 2</button><button class="opt" data-lv="3">Level 3</button></div>
 <div class="opts" style="margin-top:8px"><button class="opt" data-lv="4">Level 4</button><button class="opt" data-lv="5">Level 5</button><button class="opt" data-lv="6">Level 6</button></div>
+<div class="opts" style="margin-top:8px"><button class="opt" data-lv="7">Level 7</button><button class="opt" data-lv="8">Level 8</button><button class="opt" data-lv="9">Level 9</button></div>
 <button id="testback" class="alt">Back</button>
 </div></div>
 <div id="setup" class="hide"><div id="scard">
@@ -175,7 +176,7 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 <canvas id="rvis" width="300" height="120" class="hide"></canvas>
 <p id="msg">Otto the otter swims on his own. Tap a current tile to turn it and build a trail of arrows ahead. Collect the clam, and keep Otto the otter out of open water. The edges of the pond wrap around. During the countdown, tap Otto the otter to turn him.</p>
 <p id="best"></p>
-<button id="buy" class="hide">Buy another chance?</button>
+<button id="buy" class="hide">Continue</button>
 <button id="go">Start swimming</button>
 <button id="menu2" class="alt">Main menu</button>
 </div></div>
@@ -185,7 +186,7 @@ let cx=cv.getContext('2d');       // let: the How to Play page briefly points it
 const MAINCX=cx;
 const $=id=>document.getElementById(id);
 const COLS=5,TH=6,DX=[0,1,0,-1],DY=[-1,0,1,0],PI2=Math.PI/2;
-let W,H,dpr,cell,ox,oy,ROWS=7,grid=null,otter,parts=[],ripples=[],clams=0,lives=3,speed=.5,removed=0,level=1,levelStart=0,heartTaken=false,zen=false,zenBg=0,zenMusic=0,t=0,shake=0,running=false,best=0,score=0,qDone=false,ff=false,snailHave=false,slowT=0,thr=1000,moved=false,testMode=false,sinceResp=0;
+let W,H,dpr,cell,ox,oy,ROWS=8,grid=null,otter,parts=[],ripples=[],clams=0,lives=3,speed=.5,removed=0,level=1,levelStart=0,heartTaken=false,zen=false,zenBg=0,zenMusic=0,t=0,shake=0,running=false,best=0,score=0,qDone=false,ff=false,snailHave=false,slowT=0,thr=1000,moved=false,testMode=false,sinceResp=0;
 const nextThr=s=>s<1000?1000:s<2000?2000:s<5000?5000:Math.floor(s/5000)*5000+5000;   // 1000, 2000, 5000, then every 5000
 try{best=+localStorage.getItem('otterBestScore')||0}catch(e){}
 const SCORE_MAX=999999999;
@@ -454,7 +455,7 @@ function newTile(plain){          // plain: only a normal (or golden) tile, neve
   const mq=!plain&&!hr&&Math.random()<.02&&!zen&&!qDone&&!grid.some(g=>g&&(g.heart||g.q));   // 1 in 50: mystery tile, once per level, never with a heart
   if(mq)qDone=true;
   if(mq)return{t:'x',rot,a:rot*PI2,s:0,clam:false,heart:false,q:true,gold:false,boost:false};
-  return{t:hr?'x':q<.25?'s':q<.9?'c':'x',rot,a:rot*PI2,s:0,clam:false,heart:hr,gold:!hr&&!zen&&q>=.9&&!grid.some(g=>g&&g.gold)&&Math.random()<.1,boost:!hr&&!zen&&Math.random()<[.05,.1,.15][Math.min(level,3)-1]};
+  return{t:hr?'x':q<.25?'s':q<.9?'c':'x',rot,a:rot*PI2,s:0,clam:false,heart:hr,gold:!hr&&!zen&&q>=.9&&!grid.some(g=>g&&g.gold)&&Math.random()<.1,boost:!hr&&!zen&&Math.random()<[.05,.1,.15][Math.min(level,3)-1]+(level>=7?.1:0)};
 }
 function fill(keep,force){
   for(let i=0;i<COLS*ROWS;i++){
@@ -593,8 +594,8 @@ function spawn(){
   speed=BASE*startMul();          // every level (and every retry) starts at its own base speed
   fill(-1,idx(c,r-1));
   grid[idx(c,r)]={t:'x',rot:0,a:0,s:0,clam:false};
-  // level 2 starts with 1 block of wood, +1 per level, capped at 5 from level 6 on. It stays put all level long.
-  const nLogs=level<2?0:Math.min(5,level-1);
+  // level 2 starts with 1 block of wood, +1 per level, capped at 8 from level 9 on. It stays put all level long.
+  const nLogs=level<2?0:Math.min(8,level-1);
   if(nLogs){
     const me=idx(c,r),others=[];
     for(let i=0;i<grid.length;i++)if(i!==me)others.push(i);
@@ -616,7 +617,7 @@ function spawn(){
 }
 function init(){
   const c0=(W-16)/COLS;
-  ROWS=Math.max(5,Math.min(8,Math.floor((H-148)/c0)));
+  ROWS=8;   // fixed 8 x 5 board on every device
   grid=[];layout();
   clams=0;score=0;qDone=false;snailHave=false;slowT=0;thr=1000;lives=3;speed=.5;removed=0;level=1;levelStart=0;heartTaken=false;shake=0;parts=[];t=0;
   spawn();hud();
@@ -1188,7 +1189,7 @@ function toMenu(){
   $('menu').classList.remove('hide');
 }
 $('newgame').addEventListener('click',()=>{testMode=false;startMode(false)});
-// ---- Test Mode (temporary): jump straight to level 1-6 of New Game ----
+// ---- Test Mode (temporary): jump straight to level 1-9 of New Game ----
 $('testbtn').addEventListener('click',()=>{$('menu').classList.add('hide');$('testsel').classList.remove('hide')});
 $('testback').addEventListener('click',()=>{$('testsel').classList.add('hide');$('menu').classList.remove('hide')});
 document.querySelectorAll('#tcard [data-lv]').forEach(b=>b.addEventListener('click',()=>{
