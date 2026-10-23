@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Otto Run</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<meta name="theme-color" content="#6fbcb8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Otto Run">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<style>
+:root{--ink:#2f4a46;--cream:#fdf3d8;--clay:#e9866b;--panel:rgba(253,243,216,.95);box-sizing:border-box}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#2f4a46;--panel:rgba(253,243,216,.95)}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{height:100%;margin:0;overflow:hidden;background:#6fbcb8;font-family:"Trebuchet MS","Avenir Next",Verdana,sans-serif;color:var(--ink);touch-action:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+#hud{position:fixed;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:center;padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 0;pointer-events:none;font-weight:700;font-size:20px}
+#hud div{background:var(--panel);border-radius:999px;padding:6px 14px;box-shadow:0 2px 0 rgba(47,74,70,.25)}
+#lives{color:#d9604a;display:flex;align-items:center;line-height:1;min-height:36px}
+#restart{position:fixed;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);margin:0;padding:0;min-width:44px;height:44px;border-radius:999px;font-size:26px;line-height:44px;background:var(--panel);color:var(--ink);box-shadow:0 3px 0 rgba(47,74,70,.3)}
+#restart.arm{padding:0 16px;font-size:16px;background:var(--clay);color:#fff}
+#mute{position:fixed;left:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:9;margin:0;padding:0;width:44px;height:44px;border-radius:999px;font-size:22px;line-height:44px;background:var(--panel);color:var(--ink);box-shadow:0 3px 0 rgba(47,74,70,.3)}
+#pause{position:fixed;left:calc(50% - 22px);bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:5;margin:0;padding:0;width:44px;height:44px;border-radius:999px;font-size:15px;letter-spacing:-2px;line-height:44px;background:var(--panel);color:var(--ink);box-shadow:0 3px 0 rgba(47,74,70,.3)}
+#pausescreen{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:24px;background:#5fb0ac}
+#menu{position:fixed;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;padding:24px;background:#5fb0ac}
+#mcard button{display:block;margin:14px auto 0;width:240px;padding:12px 20px}
+#mcard button small{display:block;font-size:13px;font-weight:400;margin-top:2px}
+.alt{background:#4f93b8;box-shadow:0 4px 0 #386f8f}
+.alt:active{box-shadow:0 1px 0 #386f8f}
+#menu2,#tomenu{font-size:17px;padding:10px 26px}
+#letgo{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);left:calc(50% - 48px);z-index:5;width:96px;height:44px;margin:0;padding:0;font-size:22px}
+#score{margin-left:auto;display:flex;align-items:center;justify-content:center;gap:4px;line-height:1;min-height:36px}
+#sico{position:static;width:24px;height:24px;margin:0;flex:none}
+#slv,#stxt{display:block}
+#ff{position:fixed;right:64px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:5;margin:0;padding:0;width:44px;height:44px;border-radius:999px;font-size:15px;letter-spacing:-3px;text-indent:-3px;line-height:44px;background:var(--panel);color:var(--ink);box-shadow:0 3px 0 rgba(47,74,70,.3)}
+#snail{display:none!important;position:fixed;left:calc(50% - 22px);top:calc(env(safe-area-inset-top,0px) + 58px);z-index:5;margin:0;padding:0;width:44px;height:44px;border-radius:999px;background:var(--panel);color:var(--ink);opacity:.45;box-shadow:0 3px 0 rgba(47,74,70,.3)}
+#snail svg{width:28px;height:28px;display:block;margin:auto;fill:currentColor}
+#snail.has{opacity:1;background:#ffd95e;animation:snailpulse 1.2s ease-in-out infinite}
+#snail.act{opacity:1;animation:none}
+@keyframes snailpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+#dark{position:fixed;left:12px;top:calc(env(safe-area-inset-top,0px) + 58px);z-index:20;margin:0;padding:0;width:44px;height:44px;border-radius:999px;background:var(--panel);color:var(--ink);box-shadow:0 3px 0 rgba(47,74,70,.3)}
+#dark svg{width:26px;height:26px;display:block;margin:auto;fill:currentColor}
+#dark.on{background:#26386b;color:#ffe9a8}
+body.dark #menu,body.dark #info,body.dark #pausescreen{background:#1c2f5e}
+/* phones stay upright: in landscape the game is covered by a "turn your phone" screen */
+#rotate{display:none;position:fixed;inset:0;z-index:100;align-items:center;justify-content:center;text-align:center;background:#1c2f5e;color:#fdf3d8;font-weight:700}
+#rotate .rot-ico{font-size:56px;line-height:1.2}
+@media (orientation:landscape) and (pointer:coarse) and (max-height:520px){#rotate{display:flex}}
+/* night mode: everything on screen is dimmer (the canvas scene is dimmed in drawing code) */
+body.dark #hud,body.dark #mcv,body.dark #tcard,body.dark #card,body.dark #pcard,body.dark #mcard,body.dark #scard,body.dark #icard,
+body.dark #pause,body.dark #ff,body.dark #snail,body.dark #mute,body.dark #mmute,body.dark #dark,body.dark #letgo{filter:brightness(.72)}
+#pcard #restart,#pcard #restart.arm{position:static;display:block;margin:14px auto 0;width:auto;min-width:0;height:auto;padding:10px 26px;border-radius:999px;font-size:17px;line-height:normal;background:#4f93b8;color:#fff;box-shadow:0 4px 0 #386f8f}
+#pcard #restart.arm{background:var(--clay);box-shadow:0 4px 0 #b9644c}
+#buy{display:block;width:100%;margin:16px auto 0;padding:26px 16px;font-size:34px;line-height:1.1;color:var(--ink);background:#ffd95e;box-shadow:0 8px 0 #d29a14;animation:buypulse 1.1s ease-in-out infinite}
+#buy:active{box-shadow:0 2px 0 #d29a14}
+@keyframes buypulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@media (prefers-reduced-motion:reduce){#buy{animation:none}}
+#ff.on{background:var(--clay);color:#fff}
+#mmute{position:fixed;left:64px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:9;margin:0;padding:0;width:44px;height:44px;border-radius:999px;font-size:28px;line-height:42px;background:var(--panel);color:var(--ink);box-shadow:0 3px 0 rgba(47,74,70,.3)}
+#mmute.off{opacity:.65}
+#mmute.off::after{content:'';position:absolute;left:9px;right:9px;top:21px;height:3px;border-radius:2px;background:#d9604a;transform:rotate(-45deg)}
+#setup,#testsel{position:fixed;inset:0;z-index:4;display:flex;align-items:center;justify-content:center;padding:24px;background:#5fb0ac}
+#scard>button,#tcard>button{display:block;margin:14px auto 0;width:200px}
+body.dark #testsel{background:#1c2f5e}
+.lbl{margin:14px 0 6px;font-weight:700}
+.opts{display:flex;gap:8px}
+.opt{flex:1;margin:0;padding:8px 4px;font-size:15px;color:var(--ink);background:#fff6dc;border:3px solid transparent;border-radius:16px;box-shadow:0 3px 0 rgba(47,74,70,.25)}
+.opt.sel{border-color:var(--clay)}
+.sw{display:block;height:34px;border-radius:10px;margin-bottom:6px}
+#info{position:fixed;inset:0;z-index:8;display:block;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:20px 16px calc(env(safe-area-inset-bottom,0px) + 20px);background:#5fb0ac}
+#icard{max-width:400px;margin:0 auto}
+#icard .row{display:flex;gap:12px;align-items:center;margin:12px 0;text-align:left}
+#icard .row p{margin:0;font-size:14px;line-height:1.35}
+#icard>button{display:block;margin:14px auto 0;width:200px}
+.ico{position:static;flex:none;width:64px;height:64px;border-radius:14px}
+#mcv{pointer-events:none}
+#mcard{position:relative;z-index:1;max-width:280px}
+#mtitle{font-size:34px;letter-spacing:1px}
+#mtitle span{display:inline-block;animation:wave 1.6s ease-in-out infinite;animation-delay:calc(var(--i)*-.14s)}
+@keyframes wave{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@media (prefers-reduced-motion:reduce){#mtitle span{animation:none}}
+#pts{font-size:17px;line-height:1;min-height:36px;display:flex;align-items:center}
+#rvis{position:static;width:240px;height:96px;margin:0 auto}
+#face{position:static;width:110px;height:110px;margin:0 auto 6px}
+#overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(47,74,70,.18)}
+#card,#pcard,#mcard,#scard,#icard,#tcard{background:var(--panel);border-radius:28px;padding:26px 24px;max-width:340px;width:100%;text-align:center;box-shadow:0 6px 0 rgba(47,74,70,.25)}
+h1{margin:0 0 6px;font-size:38px;line-height:1.05}
+p{margin:8px 0;font-size:16px;line-height:1.4}
+button{margin-top:14px;font:inherit;font-weight:700;font-size:20px;color:#fff;background:var(--clay);border:0;border-radius:999px;padding:12px 34px;box-shadow:0 4px 0 #b9644c;cursor:pointer}
+button:active{transform:translateY(3px);box-shadow:0 1px 0 #b9644c}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="rotate"><div><div class="rot-ico">&#128241;</div><p>Turn your phone upright to play.</p></div></div>
+<div id="hud" class="hide"><div id="lives"></div><div id="pts">0</div><div id="score"><span id="slv"></span><canvas id="sico" width="56" height="56"></canvas><span id="stxt">0/3</span></div></div>
+<button id="mute" class="hide" aria-label="Sound on or off">&#128266;</button>
+<button id="mmute" class="hide" aria-label="Music on or off">&#9834;</button>
+<button id="pause" class="hide" aria-label="Pause">&#10074;&#10074;</button>
+<button id="dark" aria-label="Dark mode on or off"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M31 5a19 19 0 1 0 12 32A16 16 0 0 1 31 5z"/></svg></button>
+<button id="ff" class="hide" aria-label="Fast forward: double speed">&#9654;&#9654;</button>
+<button id="snail" class="hide" aria-label="Snail power-up: 10 seconds at half speed"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="29" cy="21" r="12"/><path d="M3 39c0-5 4-8 9-8h31c3 0 5 2 5 4.500S46 40 43 40H7c-2.500 0-4-.5-4-1z"/><path d="M8 33c-3-5-2-11 1-14l2.500 1.500C9.500 23 9.500 27 12 31z"/><circle cx="9" cy="17.500" r="2.200"/><path d="M13 31c0-5 1-9 4-12l2 2c-2 2.500-2.500 6-2.500 10z"/><circle cx="18" cy="17.500" r="2.200"/></svg></button>
+<button id="letgo" class="hide">Go!</button>
+<div id="pausescreen" class="hide"><div id="pcard">
+<h1>Paused</h1>
+<p>Otto the otter will wait right here.</p>
+<button id="resume">Resume</button>
+<button id="restart" class="hide alt" aria-label="Restart from the beginning">Restart</button>
+<button id="tomenu" class="alt">Main menu</button>
+</div></div>
+<div id="menu"><canvas id="mcv"></canvas><div id="mcard">
+<h1 id="mtitle" aria-label="Otto Run"></h1>
+<p>Steer Otto the otter with arrows and gather clams.</p>
+<button id="newgame">New Game</button>
+<button id="zenbtn" class="alt">Zen Mode</button>
+<button id="infobtn" class="alt">How to Play</button>
+<button id="testbtn" class="alt">Test Mode</button><p id="mbest"></p>
+</div></div>
+<div id="info" class="hide"><div id="icard">
+<h1>How to Play</h1>
+<div class="row"><canvas class="ico" id="i_otter" width="128" height="128"></canvas>
+<p><b>Otto the otter</b> swims on his own, following the arrows you turn for him.</p></div>
+<div class="row"><canvas class="ico" id="i_tile" width="128" height="128"></canvas>
+<p><b>Current tile</b> Tap it to rotate it, and it disappears once Otto the otter has swum through it.</p></div>
+<div class="row"><canvas class="ico" id="i_boost" width="128" height="128"></canvas>
+<p><b>Speed boost</b> Yellow arrows that make Otto the otter swim twice as fast for 3 tiles.</p></div>
+<div class="row"><canvas class="ico" id="i_gold" width="128" height="128"></canvas>
+<p><b>Golden tile</b> A crossroads that stays on the board after Otto the otter crosses it.</p></div>
+<div class="row"><canvas class="ico" id="i_empty" width="128" height="128"></canvas>
+<p><b>Empty tile</b> Open water that costs Otto the otter a heart if he swims onto it.</p></div>
+<div class="row"><canvas class="ico" id="i_clam" width="128" height="128"></canvas>
+<p><b>Clam</b> A tasty treasure that Otto the otter collects by swimming over it.</p></div>
+<div class="row"><canvas class="ico" id="i_heart" width="128" height="128"></canvas>
+<p><b>Heart</b> A rare tile that gives Otto the otter one extra life.</p></div>
+<div class="row"><canvas class="ico" id="i_wood" width="128" height="128"></canvas>
+<p><b>Floating wood</b> A barrier that costs Otto the otter a heart if he bonks into it.</p></div>
+<div class="row"><canvas class="ico" id="i_mystery" width="128" height="128"></canvas>
+<p><b>Mystery tile</b></p></div>
+<button id="infoback" class="alt">Back</button>
+</div></div>
+<div id="testsel" class="hide"><div id="tcard">
+<h1>Test Mode</h1>
+<p>Pick a level to start on. Scores from test games are not saved.</p>
+<div class="opts"><button class="opt" data-lv="1">Level 1</button><button class="opt" data-lv="2">Level 2</button><button class="opt" data-lv="3">Level 3</button></div>
+<div class="opts" style="margin-top:8px"><button class="opt" data-lv="4">Level 4</button><button class="opt" data-lv="5">Level 5</button><button class="opt" data-lv="6">Level 6</button></div>
+<button id="testback" class="alt">Back</button>
+</div></div>
+<div id="setup" class="hide"><div id="scard">
+<h1>Zen Mode</h1>
+<p class="lbl">Background</p>
+<div class="opts" id="bgopts">
+<button class="opt sel"><i class="sw" style="background:linear-gradient(#8fd3c6,#4fa6a6)"></i>Level 1</button>
+<button class="opt"><i class="sw" style="background:linear-gradient(#f8d0df,#e99bb8)"></i>Level 2</button>
+<button class="opt"><i class="sw" style="background:linear-gradient(#ffdcb0,#f2a96b)"></i>Level 3</button>
+</div>
+<p class="lbl">Music</p>
+<div class="opts" id="muopts">
+<button class="opt sel">&#9834; Level 1</button>
+<button class="opt">&#9834; Level 2</button>
+<button class="opt">&#9834; Level 3</button>
+</div>
+<button id="zenstart">Start</button>
+<button id="setupback" class="alt">Back</button>
+</div></div>
+<div id="overlay" class="hide"><div id="card">
+<canvas id="face" width="120" height="120" class="hide"></canvas>
+<h1 id="title">Otto Run</h1>
+<canvas id="rvis" width="300" height="120" class="hide"></canvas>
+<p id="msg">Otto the otter swims on his own. Tap a current tile to turn it and build a trail of arrows ahead. Collect the clam, and keep Otto the otter out of open water. The edges of the pond wrap around. During the countdown, tap Otto the otter to turn him.</p>
+<p id="best"></p>
+<button id="buy" class="hide">Buy another chance?</button>
+<button id="go">Start swimming</button>
+<button id="menu2" class="alt">Main menu</button>
+</div></div>
+<script>
+const cv=document.getElementById('c');
+let cx=cv.getContext('2d');       // let: the How to Play page briefly points it at its own little canvases
+const MAINCX=cx;
+const $=id=>document.getElementById(id);
+const COLS=5,TH=6,DX=[0,1,0,-1],DY=[-1,0,1,0],PI2=Math.PI/2;
+let W,H,dpr,cell,ox,oy,ROWS=7,grid=null,otter,parts=[],ripples=[],clams=0,lives=3,speed=.5,removed=0,level=1,levelStart=0,heartTaken=false,zen=false,zenBg=0,zenMusic=0,t=0,shake=0,running=false,best=0,score=0,qDone=false,ff=false,snailHave=false,slowT=0,thr=1000,moved=false,testMode=false,sinceResp=0;
+const nextThr=s=>s<1000?1000:s<2000?2000:s<5000?5000:Math.floor(s/5000)*5000+5000;   // 1000, 2000, 5000, then every 5000
+try{best=+localStorage.getItem('otterBestScore')||0}catch(e){}
+const SCORE_MAX=999999999;
+const tileVal=()=>Math.min(level,5)*10, clamVal=()=>[50,100,200,400,500][Math.min(level,5)-1];   // regular tile / clam; golden tile = 2x regular
+const R=(a,b)=>a+Math.random()*(b-a);
+// water palettes by level: teal, light pink, light orange, then repeat
+const PAL_LIGHT=[[[143,211,198],[79,166,166]],[[248,208,223],[233,155,184]],[[255,220,176],[242,169,107]]];
+const PAL_DARK=[[[27,50,104],[14,28,70]],[[122,30,58],[78,14,36]],[[196,98,26],[134,58,10]]];   // navy, burgundy, dark orange
+const DIM=.72;   // night mode multiplies the scene's brightness by this
+const waterTarget=()=>{const p=PAL[waterIdx()];return dark?p.map(c=>c.map(v=>Math.min(255,v/DIM))):p};   // pre-brightened so the dimmed water lands on the chosen colours
+let dark=false;try{dark=localStorage.getItem('otterDark')==='1'}catch(e){}
+let PAL=dark?PAL_DARK:PAL_LIGHT;
+const wc=[PAL[0][0].slice(),PAL[0][1].slice()];
+const BASE=.5;                                   // "1.0x" speed, in tiles per second
+const waterIdx=()=>zen?zenBg:(level-1)%3;      // which water colour is showing
+const tuneIdx=()=>zen?zenMusic:(level-1)%3;    // which tune is playing (Zen Mode lets you pick both)
+const startMul=()=>level>5?1.5:1;                // level 6+ starts at 1.5x
+const capMul=()=>level===1?1:Math.min(2,1+.25*(level-1));   // L1 none, L2 1.25x, L3 1.5x, L4 1.75x, L5+ 2x
+const logs=new Set();   // cells blocked by floating logs
+
+// ---- sound: everything is synthesized with Web Audio, no files needed ----
+let AC=null,NB=null,OUT=null,MG=null,muted=false,musicMuted=false;
+try{musicMuted=localStorage.getItem('otterMusicMute')==='1'}catch(e){}
+try{muted=localStorage.getItem('otterMute')==='1'}catch(e){}
+function audio(){
+  if(!AC){
+    try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){return null}
+    const n=Math.floor(AC.sampleRate*3.5),b=AC.createBuffer(1,n,AC.sampleRate),d=b.getChannelData(0);
+    for(let i=0;i<n;i++)d[i]=Math.random()*2-1;
+    NB=b;
+    OUT=AC.createGain();OUT.gain.value=muted?0:1;OUT.connect(AC.destination);   // master volume / mute
+    MG=AC.createGain();MG.gain.value=musicMuted?0:.3;MG.connect(OUT);                         // music bus
+  }
+  if(AC.state==='suspended')AC.resume();
+  return AC;
+}
+function noise(a,t0,dur,type,f0,f1,q,vol,atk,dst){
+  const s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();
+  s.buffer=NB;
+  f.type=type;f.Q.value=q;
+  f.frequency.setValueAtTime(f0,t0);f.frequency.exponentialRampToValueAtTime(f1,t0+dur);
+  g.gain.setValueAtTime(.0001,t0);
+  g.gain.exponentialRampToValueAtTime(vol,t0+atk);
+  g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+  s.connect(f);f.connect(g);g.connect(dst||OUT);
+  s.start(t0,Math.random()*.6,dur+.03);s.stop(t0+dur+.05);
+}
+function tone(a,t0,dur,type,f0,f1,vol,atk,dst){
+  const o=a.createOscillator(),g=a.createGain();
+  o.type=type;
+  o.frequency.setValueAtTime(f0,t0);o.frequency.exponentialRampToValueAtTime(f1,t0+dur);
+  g.gain.setValueAtTime(.0001,t0);
+  g.gain.exponentialRampToValueAtTime(vol,t0+atk);
+  g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+  o.connect(g);g.connect(dst||OUT);o.start(t0);o.stop(t0+dur+.05);
+}
+// ---- background music: calypso-style steel drum loop, scheduled live ----
+const mf=m=>440*Math.pow(2,(m-69)/12);
+// 8 bars in C major: C C Am Am F G C G, eight eighth-notes per bar (0 = rest)
+const MEL=[[76,0,79,76,0,72,76,79],[81,0,79,76,0,72,0,0],[81,0,84,81,0,76,81,84],[83,0,81,76,0,72,76,0],
+           [77,0,81,77,0,72,77,81],[79,0,83,79,0,74,79,83],[84,0,81,79,0,76,79,0],[79,0,76,74,0,71,0,74]];
+const BR=[48,48,45,45,41,43,48,43],BF=[55,55,52,52,48,50,55,50];
+const CH=[[64,67],[64,67],[64,69],[64,69],[69,72],[71,74],[64,67],[71,74]];
+// three tunes on the same steel pan: levels 1,4,7... / 2,5,8... / 3,6,9...
+const VARS=[
+  {bpm:116,MEL,BR,BF,CH},
+  {bpm:124,   // C F G C Am Dm G G
+   MEL:[[84,0,79,0,76,79,0,76],[77,0,81,77,0,72,0,77],[79,0,83,79,0,74,79,0],[76,79,0,84,0,79,76,0],
+        [81,0,76,81,0,84,0,81],[81,0,77,74,0,77,81,0],[83,0,79,74,0,79,83,0],[79,0,0,74,0,71,74,0]],
+   BR:[48,41,43,48,45,50,43,43],BF:[55,48,50,55,52,57,50,50],
+   CH:[[64,67],[69,72],[71,74],[64,67],[64,69],[65,69],[71,74],[71,74]]},
+  {bpm:108,   // C Em F G C Am F G
+   MEL:[[79,0,84,79,0,76,79,84],[83,0,79,76,0,71,76,0],[81,0,77,81,0,84,81,0],[83,0,79,83,0,86,83,79],
+        [84,0,79,76,0,79,84,0],[81,0,84,81,0,76,0,81],[77,0,81,84,0,81,77,0],[79,83,0,79,0,74,0,71]],
+   BR:[48,52,41,43,48,45,41,43],BF:[55,59,48,50,55,52,48,50],
+   CH:[[64,67],[67,71],[69,72],[71,74],[64,67],[64,69],[69,72],[71,74]]}
+];
+// twice as long: each tune becomes 16 bars = the original 8 bars, then the same 8 bars with the two halves swapped
+VARS.forEach(V=>['MEL','BR','BF','CH'].forEach(k=>{V[k]=V[k].concat([4,5,6,7,0,1,2,3].map(i=>V[k][i]))}));
+const MUS={on:false,step:0,next:0,timer:0,bpm:116,v:0};
+function bongo(a,t,hi,vol){               // bongo: a round skin tone plus a short slap
+  tone(a,t,hi?.13:.18,'sine',hi?480:330,hi?360:240,vol,.002,MG);
+  tone(a,t,.05,'triangle',hi?900:600,hi?600:400,vol*.35,.001,MG);
+  noise(a,t,.035,'bandpass',hi?2400:1500,hi?1500:900,1.2,vol*.5,.001,MG);
+}
+function panNote(a,t,m,vol,dur){          // steel pan: bright fundamental plus fast-fading overtones
+  const f=mf(m);
+  [[1,1,dur],[2,.55,dur*.55],[3,.16,dur*.3],[4.1,.06,dur*.2]].forEach(([k,v,d])=>{
+    const o=a.createOscillator(),g=a.createGain();
+    o.type='sine';o.frequency.value=f*k;
+    g.gain.setValueAtTime(.0001,t);
+    g.gain.exponentialRampToValueAtTime(vol*v,t+.006);
+    g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    o.connect(g);g.connect(MG);o.start(t);o.stop(t+d+.05);
+  });
+}
+function bassNote(a,t,m,vol){
+  const o=a.createOscillator(),g=a.createGain();
+  o.type='triangle';o.frequency.value=mf(m);
+  g.gain.setValueAtTime(.0001,t);
+  g.gain.exponentialRampToValueAtTime(vol,t+.01);
+  g.gain.exponentialRampToValueAtTime(.0001,t+.3);
+  o.connect(g);g.connect(MG);o.start(t);o.stop(t+.35);
+}
+function musicStep(a,s,t){
+  const bar=Math.floor(s/8),st=s%8;
+  t+=st%2?.02:0;                           // light swing on the off-beats
+  const V=VARS[MUS.v],m=V.MEL[bar][st];
+  if(m){panNote(a,t,m,.5,.5);panNote(a,t,m+12,.14,.35)}
+  if(st===2||st===5)V.CH[bar].forEach(n=>panNote(a,t,n,.2,.3));
+  if(st===0||st===3||st===6)bassNote(a,t,V.BR[bar],.55);
+  if(st===4)bassNote(a,t,V.BF[bar],.45);
+  noise(a,t,.05,'highpass',7000,9000,.7,st%2?.07:.04,.002,MG);                 // shaker
+  if(st===0||st===3||st===6)tone(a,t,.06,'sine',1100,800,.22,.002,MG);        // wood block, 3+3+2
+  // bongos (martillo-style): low drum on the pulse, high drum in between, a little fill every 4th bar
+  const fill=bar%4===3&&st>=5;
+  if(st===0||st===4)bongo(a,t,false,.3);
+  else if(st===2||st===3||st===6||st===7)bongo(a,t,true,fill?.34:.24);
+  else if(fill)bongo(a,t,false,.26);
+}
+function musicTick(){
+  const a=AC;if(!a)return;
+  const spb=60/MUS.bpm/2;
+  while(MUS.next<a.currentTime+.35){
+    if(MUS.step%8===0){             // at a bar line, switch to this level's tune if it changed
+      const v=tuneIdx();
+      if(v!==MUS.v){MUS.v=v;MUS.step=0;MUS.bpm=VARS[v].bpm}
+    }
+    musicStep(a,MUS.step,MUS.next);
+    MUS.next+=60/MUS.bpm/2;MUS.step=(MUS.step+1)%128;
+  }
+}
+function musicStart(){
+  const a=audio();if(!a||MUS.on)return;
+  MUS.on=true;MUS.step=0;MUS.v=tuneIdx();MUS.bpm=VARS[MUS.v].bpm;MUS.next=a.currentTime+.1;
+  MUS.timer=setInterval(musicTick,90);
+}
+const SFX={
+  heart(){                        // soft rising chime
+    const a=audio();if(!a)return;const t=a.currentTime;
+    [[0,.14,587],[.1,.14,740],[.2,.5,880]].forEach(([d,len,fq])=>{
+      tone(a,t+d,len,'sine',fq,fq*1.005,.28,.01);
+      tone(a,t+d,len,'sine',fq*3,fq*3,.04,.01);
+    });
+  },
+  splash(){                       // a soft wave: a low whoosh that swells up the shore and rolls back out
+    const a=audio();if(!a)return;const t=a.currentTime;
+    noise(a,t,.5,'lowpass',250,1100,.6,.2,.3);             // swell in
+    noise(a,t+.4,.6,'lowpass',1100,220,.6,.16,.06);        // draw back out (ends at 1.0 s)
+    noise(a,t+.15,.8,'highpass',3500,2500,.5,.025,.3);     // faint foam hiss on the crest
+  },
+  yay(){                          // a small crowd of kids cheering "yay"
+    const a=audio();if(!a)return;const t=a.currentTime;
+    for(let i=0;i<9;i++){
+      const t0=t+Math.random()*.12,base=330+Math.random()*200,dur=.55+Math.random()*.25;
+      const o=a.createOscillator(),g=a.createGain(),f1=a.createBiquadFilter(),f2=a.createBiquadFilter();
+      o.type='sawtooth';
+      o.frequency.setValueAtTime(base*.8,t0);
+      o.frequency.linearRampToValueAtTime(base*1.3,t0+dur*.3);
+      o.frequency.linearRampToValueAtTime(base,t0+dur);
+      f1.type='bandpass';f1.Q.value=5;
+      f1.frequency.setValueAtTime(350,t0);f1.frequency.linearRampToValueAtTime(750,t0+dur*.4);
+      f2.type='bandpass';f2.Q.value=5;
+      f2.frequency.setValueAtTime(2300,t0);f2.frequency.linearRampToValueAtTime(1900,t0+dur*.4);
+      g.gain.setValueAtTime(.0001,t0);
+      g.gain.linearRampToValueAtTime(.12,t0+.05);
+      g.gain.setValueAtTime(.12,t0+dur*.5);
+      g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+      o.connect(f1);o.connect(f2);f1.connect(g);f2.connect(g);g.connect(OUT);
+      o.start(t0);o.stop(t0+dur+.05);
+    }
+    noise(a,t,.6,'bandpass',1500,1200,.6,.05,.03);
+  },
+  applause(){                     // a burst of claps that swells and fades
+    const a=audio();if(!a)return;const t=a.currentTime+.3,D=2.2;
+    for(let i=0;i<80;i++){
+      const t0=t+Math.random()*D,vol=.1*(.3+.7*Math.sin(Math.PI*(t0-t)/D));
+      noise(a,t0,.04+Math.random()*.035,'bandpass',1400+Math.random()*2200,900+Math.random()*1500,.9,vol,.002);
+    }
+    noise(a,t,D,'bandpass',2200,1800,.5,.05,.4);
+  },
+  flute(){                        // short playful flute run for the snail power-up
+    const a=audio();if(!a)return;const t=a.currentTime;
+    [[0,659],[.09,784],[.18,988],[.27,784],[.36,1175]].forEach(([d,fq],i)=>{
+      const len=i===4?.38:.11;
+      tone(a,t+d,len,'sine',fq,fq*1.006,.26,.02);
+      tone(a,t+d,len,'sine',fq*2,fq*2,.035,.02);
+      tone(a,t+d+len*.1,len*.8,'sine',fq*1.004,fq*1.01,.05,.05);   // slight shimmer
+      noise(a,t+d,len*.8,'highpass',5000,7000,.6,.03,.01);          // breath
+    });
+  },
+  thunder(){                     // three cracks matching the flashes, then a long low rumble
+    const a=audio();if(!a)return;const t=a.currentTime;
+    [0,.3,.6].forEach((d,k)=>{
+      noise(a,t+d,.22,'bandpass',3500,500,.8,.55,.002);
+      tone(a,t+d,.25,'sawtooth',180,45,.18,.003);
+    });
+    noise(a,t+.05,2.2,'lowpass',500,50,.7,.7,.15);
+    tone(a,t+.1,2,'sine',70,28,.5,.1);
+  },
+  bonk(){                         // wooden thunk
+    const a=audio();if(!a)return;const t=a.currentTime;
+    tone(a,t,.22,'sine',260,95,.75,.004);
+    tone(a,t,.12,'triangle',620,300,.3,.002);
+    tone(a,t,.95,'sine',150,105,.4,.004);      // low body that keeps ringing (about 1 s)
+    tone(a,t,.95,'sine',390,375,.14,.004);     // resonant overtone
+    noise(a,t,.06,'bandpass',1200,500,1.5,.45,.002);
+  },
+  clam(){                         // bright two-note pickup ping, glassy and bubbly
+    const a=audio();if(!a)return;const t=a.currentTime;
+    tone(a,t,.08,'triangle',700,800,.26,.004);
+    tone(a,t,.08,'sine',1400,1600,.07,.004);
+    tone(a,t+.08,.38,'triangle',1050,1180,.26,.004);
+    tone(a,t+.08,.38,'sine',2100,2360,.07,.004);
+    noise(a,t,.04,'highpass',5000,7000,.7,.05,.003);
+  },
+  jingleLow(){SFX.jingle(.5)},    // same jingle, one octave lower (3rd clam of a level)
+  jingle(m=1){                    // playful rising three-note jingle (m=.5: an octave lower)
+    const a=audio();if(!a)return;const t=a.currentTime;
+    [[0,.1,659*m],[.11,.1,784*m],[.22,.4,1047*m]].forEach(([d,len,fq])=>{
+      tone(a,t+d,len,'triangle',fq,fq*1.01,.3,.008);
+      tone(a,t+d,len,'sine',fq*2,fq*2.02,.08,.008);
+    });
+  },
+  dumdum(){                       // sad two-note sting
+    const a=audio();if(!a)return;const t=a.currentTime;
+    [[0,.32,220],[.42,.75,165]].forEach(([d,len,fq])=>{
+      const o=a.createOscillator(),lp=a.createBiquadFilter(),g=a.createGain();
+      o.type='sawtooth';o.frequency.setValueAtTime(fq,t+d);
+      lp.type='lowpass';lp.frequency.value=900;
+      g.gain.setValueAtTime(.0001,t+d);
+      g.gain.linearRampToValueAtTime(.3,t+d+.02);
+      g.gain.setValueAtTime(.3,t+d+len*.5);
+      g.gain.exponentialRampToValueAtTime(.0001,t+d+len);
+      o.connect(lp);lp.connect(g);g.connect(OUT);
+      o.start(t+d);o.stop(t+d+len+.05);
+    });
+  }
+};
+const idx=(c,r)=>r*COLS+c, inb=(c,r)=>c>=0&&r>=0&&c<COLS&&r<ROWS;
+
+function resize(){dpr=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;cv.width=W*dpr;cv.height=H*dpr;cx.setTransform(dpr,0,0,dpr,0,0);if(grid)layout()}
+function layout(){
+  const top=84,bot=64;
+  cell=Math.floor(Math.min((W-16)/COLS,(H-top-bot)/ROWS));
+  ox=(W-cell*COLS)/2;oy=top+(H-top-bot-cell*ROWS)/2;
+}
+const cxOf=c=>ox+c*cell+cell/2, cyOf=r=>oy+r*cell+cell/2;
+
+// ---- tiles: s = straight, c = corner, x = crossing ----
+function conns(tl){
+  const r=((tl.rot%4)+4)%4;
+  if(tl.t==='x')return[0,1,2,3];
+  if(tl.t==='s')return r%2?[1,3]:[0,2];
+  return[r,(r+1)%4];
+}
+function exitDir(tl,h){
+  const en=(h+2)%4,cs=conns(tl);
+  if(!cs.includes(en))return -1;
+  if(tl.t!=='c')return h;
+  return cs[0]===en?cs[1]:cs[0];
+}
+function newTile(plain){          // plain: only a normal (or golden) tile, never a heart or mystery tile
+  const q=Math.random(),rot=Math.floor(Math.random()*4);
+  const hr=!plain&&Math.random()<.02&&!zen&&!heartTaken&&!grid.some(g=>g&&(g.heart||g.q));   // 1 in 50 tiles is a heart
+  const mq=!plain&&!hr&&Math.random()<.02&&!zen&&!qDone&&!grid.some(g=>g&&(g.heart||g.q));   // 1 in 50: mystery tile, once per level, never with a heart
+  if(mq)qDone=true;
+  if(mq)return{t:'x',rot,a:rot*PI2,s:0,clam:false,heart:false,q:true,gold:false,boost:false};
+  return{t:hr?'x':q<.25?'s':q<.9?'c':'x',rot,a:rot*PI2,s:0,clam:false,heart:hr,gold:!hr&&!zen&&q>=.9&&!grid.some(g=>g&&g.gold)&&Math.random()<.1,boost:!hr&&!zen&&Math.random()<[.05,.1,.15][Math.min(level,3)-1]};
+}
+function fill(keep,force){
+  for(let i=0;i<COLS*ROWS;i++){
+    if(i===keep)continue;
+    grid[i]=(i===force||level===1||Math.random()<.86)?newTile():null;
+  }
+}
+// fairness: can Otto reach cell `target` if the player rotates tiles optimally?
+// (search over cell+heading; straights and crossings keep the heading, corners can turn either way)
+function clamReachable(target,free){
+  const o=otter,start=idx(o.c,o.r),seen=new Set(),q=[];
+  const heads=free?[0,1,2,3]:[o.e];
+  for(const h of heads){seen.add(start*4+h);q.push([start,h])}
+  while(q.length){
+    const [i,h]=q.shift(),c=i%COLS,r=(i-c)/COLS;
+    const nc=(c+DX[h]+COLS)%COLS,nr=(r+DY[h]+ROWS)%ROWS,ni=idx(nc,nr);
+    if(ni===target)return true;
+    const tl=grid[ni];
+    if(!tl||ni===start||logs.has(ni))continue;
+    const outs=tl.t==='c'?[(h+1)%4,(h+3)%4]:[h];   // straights and crossings go straight on, corners turn
+    for(const nh of outs){const k=ni*4+nh;if(!seen.has(k)){seen.add(k);q.push([ni,nh])}}
+  }
+  return false;
+}
+function woodFree(i){                // no floating wood within 1 tile (8 around) of cell i
+  for(const l of logs)if(cheb(l,i)<=1)return false;
+  return true;
+}
+// exact check: a route can not reuse a cell (tiles vanish once Otto has crossed them). Searches simple paths;
+// if the search budget runs out it answers "no", and the caller then carves a guaranteed path instead.
+function simpleReach(target,fr,budget=40000){
+  const o=otter,start=idx(o.c,o.r),used=new Uint8Array(grid.length);used[start]=1;
+  const go=(cell,h)=>{
+    if(--budget<0)return false;
+    const c=cell%COLS,r=(cell-c)/COLS,ni=idx((c+DX[h]+COLS)%COLS,(r+DY[h]+ROWS)%ROWS);
+    if(ni===target)return true;
+    const tl=grid[ni];
+    if(!tl||used[ni]||logs.has(ni))return false;
+    used[ni]=1;
+    const outs=tl.t==='c'?[(h+1)%4,(h+3)%4]:[h];
+    for(const nh of outs)if(go(ni,nh)){used[ni]=0;return true}
+    used[ni]=0;return false;
+  };
+  for(const h of (fr?[0,1,2,3]:[o.e]))if(go(start,h))return true;
+  return false;
+}
+function clamOK(i,free){
+  if(zen)return true;
+  return woodFree(i)&&clamReachable(i,free);
+}
+// chebyshev distance on the wrapping board (1 = the 8 surrounding cells)
+function cheb(i,j){
+  const a=i%COLS,b=(i-a)/COLS,c=j%COLS,d=(j-c)/COLS,dc=Math.abs(a-c),dr=Math.abs(b-d);
+  return Math.max(Math.min(dc,COLS-dc),Math.min(dr,ROWS-dr));
+}
+// carve a route from Otto to cell i that is certain to work: tiles on the way are retyped as straight tiles where the
+// route goes on and corner tiles where it turns (hearts and mystery tiles stay crossings, so the route goes straight
+// through them). It never uses wood or Otto's own cell and never uses a cell twice.
+function carvePath(i,fr,relax){
+  const o=otter,me=idx(o.c,o.r),seen=new Set(),q=[];
+  for(const h of (fr?[0,1,2,3]:[o.e])){seen.add(me*4+h);q.push({cell:me,h,path:[]})}
+  while(q.length){
+    const s=q.shift(),c=s.cell%COLS,r=(s.cell-c)/COLS;
+    const n=idx((c+DX[s.h]+COLS)%COLS,(r+DY[s.h]+ROWS)%ROWS);
+    if(n===i){                                   // found: build the tiles along the route
+      s.path.forEach(st=>{
+        const tl=grid[st.cell]||(grid[st.cell]=newTile(true));
+        if(relax){tl.heart=false;tl.q=false}
+        if(!(tl.heart||tl.q))tl.t=st.entry===st.exit?'s':'c';
+        for(let rot=0;rot<4;rot++){tl.rot=rot;if(exitDir(tl,st.entry)===st.exit)break}
+        tl.a=tl.rot*PI2;
+      });
+      return true;
+    }
+    if(logs.has(n)||n===me||s.path.some(st=>st.cell===n))continue;
+    const tl=grid[n],fixed=!relax&&tl&&(tl.heart||tl.q);
+    const outs=fixed?[s.h]:[s.h,(s.h+1)%4,(s.h+3)%4];
+    for(const nh of outs){
+      const k=n*4+nh;
+      if(seen.has(k))continue;
+      seen.add(k);q.push({cell:n,h:nh,path:s.path.concat([{cell:n,entry:s.h,exit:nh}])});
+    }
+  }
+  return relax?false:carvePath(i,fr,true);   // last resort: a heart / mystery tile in the way turns into a normal tile
+}
+// a clam at cell i: empty water within 1 tile becomes normal tiles, and the clam is guaranteed reachable
+function settleClam(i,fr){
+  const me=idx(otter.c,otter.r);
+  for(let n=0;n<grid.length;n++){
+    if(n===i||n===me||cheb(n,i)!==1||logs.has(n))continue;
+    if(!grid[n])grid[n]=newTile(true);     // normal (or golden) tile
+  }
+  if(!simpleReach(i,fr))carvePath(i,fr);      // guaranteed: a carved path is a simple path
+}
+// respawn: every EMPTY cell (open water) gets a new tile. Existing tiles, wood, the clam and Otto's cell are untouched.
+function refillEmpty(){
+  const o=otter,me=idx(o.c,o.r);
+  for(let i=0;i<grid.length;i++){
+    if(i===me||logs.has(i)||grid[i])continue;
+    const ahead=idx((o.c+DX[o.e]+COLS)%COLS,(o.r+DY[o.e]+ROWS)%ROWS);
+    grid[i]=newTile(i===ahead);        // the cell right in front of Otto, if it was empty, gets a plain tile
+  }
+}
+function placeClam(first,free){
+  if(grid.some(g=>g&&g.clam))return;
+  if(!zen&&clams-levelStart>=3)return;   // 3 clams collected this level: no 4th clam
+  const mk=()=>({t:'x',rot:0,a:0,s:0,clam:true,heart:false,boost:false});
+  if(zen){                       // zen: the clam may replace ANY tile (even a non-empty one) more than 2 moves from Otto
+    const far=[];
+    for(let i=0;i<grid.length;i++){
+      const c=i%COLS,r=(i-c)/COLS,dc=Math.abs(c-otter.c),dr=Math.abs(r-otter.r);
+      if(Math.min(dc,COLS-dc)+Math.min(dr,ROWS-dr)>2)far.push(i);
+    }
+    if(far.length)grid[far[Math.floor(Math.random()*far.length)]]=mk();
+    return;
+  }
+  const near=i=>{const c=i%COLS,r=(i-c)/COLS,dc=Math.abs(c-otter.c),dr=Math.abs(r-otter.r);return Math.min(dc,COLS-dc)<=1&&Math.min(dr,ROWS-dr)<=1};   // within 1 tile (8 around + Otto's own)
+  const put=i=>{grid[i]=mk();settleClam(i,free)};   // place the clam, then make its surroundings fair
+  const pick=a=>a[Math.floor(Math.random()*a.length)];
+  const me=idx(otter.c,otter.r);
+  const ok=i=>i!==me&&!logs.has(i)&&!(grid[i]&&(grid[i].heart||grid[i].q))&&(!free||!near(i));
+  const all=[];for(let i=0;i<grid.length;i++)if(ok(i)&&woodFree(i))all.push(i);   // never within 1 tile of wood
+  const stages=[
+    all.filter(i=>!grid[i]&&clamReachable(i,free)),     // 1) empty water it can reach
+    all.filter(i=>grid[i]&&clamReachable(i,free)),      // 2) replacing a tile it can reach
+    all                                                 // 3) any wood-free cell (a path is carved to it)
+  ];
+  for(const st of stages)if(st.length){put(pick(st));return}
+  const last=[];for(let i=0;i<grid.length;i++)if(ok(i))last.push(i);   // 4) never expected: wood everywhere
+  if(last.length)put(pick(last));
+}
+function spawn(){
+  const c=Math.floor(COLS/2),r=Math.floor(ROWS/2);
+  grid=new Array(COLS*ROWS).fill(null);logs.clear();
+  ff=false;moved=false;$('ff').classList.remove('on');
+  speed=BASE*startMul();          // every level (and every retry) starts at its own base speed
+  fill(-1,idx(c,r-1));
+  grid[idx(c,r)]={t:'x',rot:0,a:0,s:0,clam:false};
+  // level 2 starts with 1 block of wood, +1 per level, capped at 5 from level 6 on. It stays put all level long.
+  const nLogs=level<2?0:Math.min(5,level-1);
+  if(nLogs){
+    const me=idx(c,r),others=[];
+    for(let i=0;i<grid.length;i++)if(i!==me)others.push(i);
+    let chosen=null;
+    for(let attempt=0;attempt<300&&!chosen;attempt++){
+      const pool=others.slice(),pickd=[];
+      for(let k=0;k<nLogs;k++)pickd.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
+      const set=new Set(pickd);
+      let open=0;for(let d=0;d<4;d++)if(!set.has(idx((c+DX[d]+COLS)%COLS,(r+DY[d]+ROWS)%ROWS)))open++;
+      let spots=0;for(let i=0;i<grid.length;i++)if(cheb(i,me)>1&&pickd.every(l=>cheb(l,i)>1))spots++;   // places a clam may go
+      if(open>=3&&spots>=6)chosen=pickd;
+    }
+    (chosen||others.slice(0,nLogs)).forEach(i=>{grid[i]=null;logs.add(i)});
+  }
+  sinceResp=0;
+  otter={c,r,e:0,p:0,a:0,wait:zen?Infinity:5};   // zen: the otter waits until you press Go
+  placeClam(level===1,true);
+  if(zen)$('letgo').classList.remove('hide');
+}
+function init(){
+  const c0=(W-16)/COLS;
+  ROWS=Math.max(5,Math.min(8,Math.floor((H-148)/c0)));
+  grid=[];layout();
+  clams=0;score=0;qDone=false;snailHave=false;slowT=0;thr=1000;lives=3;speed=.5;removed=0;level=1;levelStart=0;heartTaken=false;shake=0;parts=[];t=0;
+  spawn();hud();
+}
+function hud(){
+  $('pts').textContent=score.toLocaleString('en-US');$('pts').style.display=zen?'none':'';
+  $('lives').textContent='\u2665 '.repeat(Math.max(lives,0)).trim()||'\u2661';
+  $('lives').style.display=zen?'none':'';
+  $('slv').textContent=zen?'':'Lv '+level+' · ';
+  $('stxt').textContent=zen?clams:Math.min(clams-levelStart,99)+'/3';
+}
+
+// ---- game logic ----
+function burst(x,y,col,n){for(let i=0;i<n;i++)parts.push({x,y,vx:R(-90,90),vy:R(-90,90),life:1,col,r:R(2,4.5)})}
+function arrive(){
+  const o=otter,nc=(o.c+DX[o.e]+COLS)%COLS,nr=(o.r+DY[o.e]+ROWS)%ROWS;
+  const tl=grid[idx(nc,nr)];
+  const ne=tl?exitDir(tl,o.e):-1;
+  if(ne<0){crash(logs.has(idx(nc,nr)));return}
+  burst(cxOf(o.c),cyOf(o.r),'#d6effa',8);
+  SFX.splash();
+  const left=grid[idx(o.c,o.r)];
+  if(!(left&&left.gold))grid[idx(o.c,o.r)]=null;   // the tile just left is removed, golden tiles stay
+  o.c=nc;o.r=nr;o.e=ne;o.p-=1;
+  if(o.boost>0)o.boost--;       // one boosted tile completed
+  if(!zen){score=Math.min(SCORE_MAX,score+(tl.clam?clamVal():tl.gold?tileVal()*2:tileVal()));hud();
+    if(score>=thr)thr=nextThr(score)}   // points for the tile just crossed; snail power-up at 1000, 2000, 5000, then every 5000 (max 1 held)
+  if(tl.heart){tl.heart=false;tl.gone=true;heartTaken=true;if(lives<5)lives++;hud();SFX.heart();burst(cxOf(nc),cyOf(nr),'#ff9bb0',12)}   // heart: +1 life (max 5)
+  if(tl.boost)o.boost=3;        // boosted tile: double speed for the next 3 tiles
+  const gotClam=!!tl.clam;
+  if(tl.clam){tl.clam=false;tl.gone=true;clams=zen?Math.min(999,clams+1):clams+1;hud();SFX.clam();if(!zen&&clams-levelStart===3)SFX.jingleLow();burst(cxOf(nc),cyOf(nr),'#fff6c8',10)}
+  if(!(left&&left.gold)){removed++;sinceResp++}   // a golden tile doesn't count as an expired tile
+  speed=Math.min(speed*1.05,BASE*capMul());   // +5% per tile up to this level's cap (level 1 never speeds up)
+  if(zen){
+    if(removed%3===0){                // zen: every 3 tiles, 3 empty cells get new tiles
+      const empty=[];
+      for(let i=0;i<grid.length;i++)if(!grid[i]&&!logs.has(i))empty.push(i);
+      for(let k=0;k<3&&empty.length;k++)grid[empty.splice(Math.floor(Math.random()*empty.length),1)[0]]=newTile();
+    }
+  }else{
+    // New Game: after a clam, or after 5 tiles (6 on level 5, 7 from level 6), every empty cell gets a new tile
+    const every=level>=6?7:level===5?6:5;
+    const allowed=clams-levelStart<3&&!(level===1&&score>=1500)&&!(level===2&&score>=4500);   // anti-farming and no respawns once the level is won
+    if(allowed&&(gotClam||sinceResp>=every)){
+      sinceResp=0;
+      const keep=grid.findIndex(g=>g&&g.clam);
+      refillEmpty();
+      if(keep>=0)settleClam(keep,false);
+    }
+    if(gotClam)sinceResp=0;           // picking up a clam always restarts the tile count
+  }
+  placeClam();
+  if(tl.q){tl.q=false;tl.gone=true;
+    if(Math.random()<.5){slowT=10;SFX.flute();burst(cxOf(nc),cyOf(nr),'#ffd95e',16)}   // 50%: 10 s at half speed (snail effect)
+    else{shuffleBoard();o.wait=5;startZap();burst(cxOf(nc),cyOf(nr),'#c9a8ff',16)}}   // 50%: shuffle everything, stun Otto for 5 s   // mystery tile: shuffle everything, stun Otto for 5 s
+}
+// shuffle every cell except Otto's and the wood; the clam must stay reachable afterwards
+function shuffleBoard(){
+  const o=otter,keep=idx(o.c,o.r),cells=[];
+  for(let i=0;i<grid.length;i++)if(i!==keep&&!logs.has(i))cells.push(i);
+  const items=cells.map(i=>grid[i]);
+  const apply=()=>{
+    for(let i=items.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[items[i],items[j]]=[items[j],items[i]]}
+    cells.forEach((ci,k)=>{grid[ci]=items[k];if(grid[ci])grid[ci].s=0});
+    const cI=grid.findIndex(g=>g&&g.clam);
+    return cI<0||clamOK(cI,true);        // the player may turn Otto during the stun, so any heading counts
+  };
+  for(let n=0;n<400;n++)if(apply()){const c=grid.findIndex(g=>g&&g.clam);if(c>=0)settleClam(c,true);return}
+  const cI=grid.findIndex(g=>g&&g.clam);   // (practically unreachable) no fair layout found: respawn the clam fairly
+  if(cI>=0)grid[cI]=null;
+  placeClam(false,true);
+}
+let hitLog=false;
+function crash(byLog){
+  hitLog=!!byLog;  const o=otter;
+  burst(cxOf(o.c)+DX[o.e]*o.p*cell,cyOf(o.r)+DY[o.e]*o.p*cell,'#ffffff',16);
+  running=false;shake=1;o.p=.5;   // stop at the edge of the obstacle
+  if(zen){SFX.bonk();o.cry=true;popT=setTimeout(()=>{spawn();running=true},1700);return}   // zen: no lives, just a fresh board
+  if(clams-levelStart>=3){SFX.jingle();o.clap=true;popT=setTimeout(()=>showPop('next'),1700);return}   // show the clapping otter first   // 3 clams this level: advance
+  SFX.bonk();o.cry=true;lives--;hud();
+  popT=setTimeout(()=>{if(lives<=0)end();else showPop('retry')},1700);   // let the crying play out first
+}
+let mode='start';
+function drawFace(happy){
+  const f=$('face'),g=f.getContext('2d');
+  g.clearRect(0,0,120,120);
+  g.lineCap='round';
+  g.fillStyle='#9a6b48';
+  g.beginPath();g.arc(24,32,12,0,7);g.arc(96,32,12,0,7);g.fill();
+  g.fillStyle='#e9cfa6';
+  g.beginPath();g.arc(24,33,5.5,0,7);g.arc(96,33,5.5,0,7);g.fill();
+  g.fillStyle='#9a6b48';g.beginPath();g.arc(60,66,44,0,7);g.fill();
+  g.strokeStyle='rgba(255,255,255,.85)';g.lineWidth=1.8;
+  [-1,1].forEach(d=>{for(let i=0;i<2;i++){g.beginPath();g.moveTo(60+d*30,80+i*5);g.lineTo(60+d*50,76+i*10);g.stroke()}});
+  g.fillStyle='#e9cfa6';g.beginPath();g.ellipse(60,80,27,20,0,0,7);g.fill();
+  g.fillStyle='#2b1d17';g.beginPath();g.ellipse(60,71,8.5,5.8,0,0,7);g.fill();
+  g.fillStyle='rgba(255,255,255,.7)';g.beginPath();g.ellipse(57.5,69.2,2.4,1.5,0,0,7);g.fill();
+  g.strokeStyle='#2b1d17';g.lineWidth=3.6;
+  if(happy){
+    g.beginPath();g.arc(42,60,7.5,Math.PI*1.1,Math.PI*1.9);g.stroke();
+    g.beginPath();g.arc(78,60,7.5,Math.PI*1.1,Math.PI*1.9);g.stroke();
+    g.fillStyle='rgba(233,134,107,.55)';g.beginPath();g.arc(30,76,7,0,7);g.arc(90,76,7,0,7);g.fill();
+    g.fillStyle='#d9604a';g.beginPath();g.moveTo(49,81);g.quadraticCurveTo(60,100,71,81);g.closePath();g.fill();
+    g.beginPath();g.moveTo(60,77);g.lineTo(60,81);g.stroke();
+    g.beginPath();g.moveTo(49,81);g.quadraticCurveTo(60,100,71,81);g.stroke();
+  }else{
+    g.fillStyle='#2b1d17';g.beginPath();g.arc(42,60,6.5,0,7);g.arc(78,60,6.5,0,7);g.fill();
+    g.fillStyle='#fff';g.beginPath();g.arc(44,57.5,2.2,0,7);g.arc(80,57.5,2.2,0,7);g.fill();
+    g.lineWidth=3;
+    g.beginPath();g.moveTo(31,50);g.lineTo(50,43);g.moveTo(89,50);g.lineTo(70,43);g.stroke();
+    g.fillStyle='#8ecff0';g.beginPath();g.moveTo(36,68);g.quadraticCurveTo(30,78,36,80);g.quadraticCurveTo(42,78,36,68);g.fill();
+    g.lineWidth=3.6;
+    g.beginPath();g.moveTo(60,77);g.lineTo(60,82);g.stroke();
+    g.beginPath();g.arc(60,96,12,Math.PI*1.15,Math.PI*1.85);g.stroke();
+  }
+}
+function drawRetryVis(){            // remaining hearts + clams of this level, as pictures only
+  const c=$('rvis'),g=c.getContext('2d'),sCx=cx;
+  cx=g;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,c.width,c.height);
+  try{
+    const row=(n,y,fn)=>{for(let i=0;i<n;i++)fn(c.width/2+(i-(n-1)/2)*56,y)};
+    row(Math.max(lives,0),32,(x,y)=>{   // same ♥ glyph and colour as the hearts in the corner HUD
+      g.fillStyle='#d9604a';g.textAlign='center';g.textBaseline='middle';
+      g.font='bold 52px "Trebuchet MS","Avenir Next",Verdana,sans-serif';g.fillText('♥',x,y+2);
+    });
+    const got=Math.max(0,Math.min(2,clams-levelStart));
+    row(3,88,(x,y)=>{
+      const i=Math.round((x-c.width/2)/56)+1;
+      if(i<got){drawClam(x,y,22,0,g);return}
+      const r=22;                       // clam still to collect: dashed outline
+      g.save();g.translate(x,y);g.strokeStyle='rgba(47,74,70,.55)';g.lineWidth=2.5;g.setLineDash([5,4]);g.lineJoin='round';
+      g.beginPath();g.moveTo(-r,r*.5);g.quadraticCurveTo(-r*1.1,-r*1.1,0,-r*1.05);g.quadraticCurveTo(r*1.1,-r*1.1,r,r*.5);g.quadraticCurveTo(0,r*.9,-r,r*.5);g.closePath();g.stroke();
+      g.restore();
+    });
+  }finally{cx=sCx}
+}
+function showPop(kind,isNew){
+  mode=kind;
+  $('msg').classList.remove('hide');$('best').classList.remove('hide');$('rvis').classList.add('hide');$('buy').classList.add('hide');
+  drawFace(kind==='next'||!!isNew);
+  $('face').classList.remove('hide');
+  const n=clams+(clams===1?' clam':' clams');
+  if(kind==='next'){
+    level++;levelStart=clams;heartTaken=false;qDone=false;hud();
+    $('title').textContent='Next Level';
+    $('msg').textContent='Nice swimming! Level '+level+': collect 3 more clams.';
+    $('best').textContent='Score: '+score.toLocaleString('en-US');
+    $('go').textContent='Keep swimming';
+  }else if(kind==='retry'){
+    $('title').textContent='Oh no!';
+    $('msg').classList.add('hide');$('best').classList.add('hide');   // pictures only: hearts left + clams
+    drawRetryVis();$('rvis').classList.remove('hide');
+    $('go').textContent='Try again';
+  }else{
+    $('title').textContent=isNew?'New High Score!':'Try again!';
+    $('msg').textContent=(hitLog?'Otto the otter collided with a log! ':'Otto the otter swam into open water. ')+'Out of hearts. You scored '+score.toLocaleString('en-US')+' and gathered '+n+'.';
+    $('best').textContent='Best: '+best.toLocaleString('en-US');
+    $('go').textContent='Start Over';
+    $('buy').classList.remove('hide');
+    $('hud').classList.add('hide');$('restart').classList.add('hide');$('pause').classList.add('hide');$('ff').classList.add('hide');$('snail').classList.add('hide');
+  }
+  $('overlay').classList.remove('hide');
+}
+function end(){
+  running=false;
+  const isNew=!testMode&&score>best;   // test games never change the high score
+  if(isNew){best=score;try{localStorage.setItem('otterBestScore',best)}catch(e){}}
+  showPop('over',isNew);
+}
+function update(dt){
+  t+=dt;shake=Math.max(0,shake-dt*3);
+  const tp=waterTarget(),k=Math.min(1,dt*3);
+  for(let i=0;i<2;i++)for(let j=0;j<3;j++)wc[i][j]+=(tp[i][j]-wc[i][j])*k;
+  grid.forEach(g=>{if(g){g.s+=(1-g.s)*Math.min(1,dt*10);g.a+=(g.rot*PI2-g.a)*Math.min(1,dt*16)}});
+  parts.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt*2});
+  parts=parts.filter(p=>p.life>0);
+  ripples.forEach(r=>{r.y+=dt*10;if(r.y>H+20){r.y=-20;r.x=R(0,W)}});
+  const o=otter;
+  let d=o.e*PI2-o.a;d=Math.atan2(Math.sin(d),Math.cos(d));o.a+=d*Math.min(1,dt*12);
+  updateZap(dt);
+  {const b=$('snail'),act=slowT>0;
+   b.classList.toggle('has',snailHave&&!act);b.classList.toggle('act',act);
+   b.style.background=act?'conic-gradient(#ffd95e '+(slowT/10*360)+'deg, rgba(253,243,216,.95) 0)':'';
+   b.style.display=(zen||!moved)?'none':'';}   // hidden until Otto starts moving
+  if(!running)return;
+  if(o.wait>0){o.wait-=dt;return}
+  moved=true;
+  if(slowT>0)slowT=Math.max(0,slowT-dt);
+  o.p+=speed*(o.boost>0?2:1)*(ff?2:1)*(slowT>0?.5:1)*dt;
+  if(o.boost>0&&Math.random()<dt*40)burst(cxOf(o.c)+DX[o.e]*o.p*cell,cyOf(o.r)+DY[o.e]*o.p*cell,'#ffd21f',1);
+  if(o.p>=1)arrive();
+}
+
+// ---- drawing ----
+function rr(x,y,w,h,r){cx.beginPath();cx.moveTo(x+r,y);cx.arcTo(x+w,y,x+w,y+h,r);cx.arcTo(x+w,y+h,x,y+h,r);cx.arcTo(x,y+h,x,y,r);cx.arcTo(x,y,x+w,y,r);cx.closePath()}
+function drawWater(){
+  const g=cx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'rgb('+wc[0].map(Math.round).join(',')+')');g.addColorStop(1,'rgb('+wc[1].map(Math.round).join(',')+')');
+  cx.fillStyle=g;cx.fillRect(0,0,W,H);
+  cx.fillStyle='rgba(255,250,210,.12)';
+  for(let i=0;i<5;i++){const y=((t*14+i*H/5)%(H+100))-50;cx.beginPath();cx.ellipse((i*191+W*.25)%W,y,80,24,.3,0,7);cx.fill()}
+  cx.lineCap='round';
+  for(let i=0;i<8;i++){
+    const by=H*(.04+i*.13),amp=5+i*.8;
+    cx.beginPath();cx.moveTo(0,by);
+    for(let x=0;x<=W+12;x+=12)cx.lineTo(x,by+Math.sin(x*.022+t*(.9+i*.05)+i*1.9)*amp);
+    cx.strokeStyle='rgba(255,255,255,.28)';cx.lineWidth=2.5;cx.stroke();
+    cx.lineTo(W,H);cx.lineTo(0,H);cx.closePath();
+    cx.fillStyle='rgba(255,255,255,.035)';cx.fill();
+  }
+}
+function head(d,dist,s,bo){
+  cx.save();cx.rotate(d*PI2);cx.translate(0,-dist);
+  cx.beginPath();cx.moveTo(0,-s);cx.lineTo(s*.95,s*.65);cx.lineTo(-s*.95,s*.65);cx.closePath();cx.fill();if(bo)cx.stroke();
+  cx.restore();
+}
+function drawLog(c,r){
+  const w=cell*.82,h=cell*.34,rot=((c*7+r*3)%5-2)*.2;
+  cx.save();cx.translate(cxOf(c),cyOf(r)+Math.sin(t*1.4+c*1.3+r*.9)*cell*.03);cx.rotate(rot);
+  cx.fillStyle='rgba(30,70,70,.25)';rr(-w/2+2,-h/2+5,w,h,h/2);cx.fill();
+  cx.fillStyle='#9a6b45';rr(-w/2,-h/2,w,h,h/2);cx.fill();
+  cx.fillStyle='#b9855a';rr(-w/2+h*.3,-h/2+h*.12,w-h*.6,h*.3,h*.15);cx.fill();
+  cx.strokeStyle='#6f4a2f';cx.lineWidth=1.6;cx.lineCap='round';
+  for(let i=-1;i<=1;i++){cx.beginPath();cx.moveTo(i*w*.2-5,h*.1);cx.lineTo(i*w*.2+7,h*.1);cx.stroke()}
+  cx.fillStyle='#d9a877';cx.beginPath();cx.ellipse(-w/2+h*.3,0,h*.28,h*.4,0,0,7);cx.fill();
+  cx.strokeStyle='#8a5a38';cx.beginPath();cx.arc(-w/2+h*.3,0,h*.12,0,7);cx.stroke();
+  cx.fillStyle='#8fb36b';cx.beginPath();cx.ellipse(w*.15,-h*.35,h*.55,h*.2,0,0,7);cx.fill();
+  cx.restore();
+}
+function star4(x,y,r){          // four-point sparkle
+  cx.beginPath();cx.moveTo(x,y-r);cx.lineTo(x+r*.3,y-r*.3);cx.lineTo(x+r,y);cx.lineTo(x+r*.3,y+r*.3);
+  cx.lineTo(x,y+r);cx.lineTo(x-r*.3,y+r*.3);cx.lineTo(x-r,y);cx.lineTo(x-r*.3,y-r*.3);cx.closePath();cx.fill();
+}
+function heartPath(r){
+  cx.beginPath();cx.moveTo(0,r*.9);
+  cx.bezierCurveTo(-r*1.5,r*.1,-r*1.1,-r*1.1,0,-r*.4);
+  cx.bezierCurveTo(r*1.1,-r*1.1,r*1.5,r*.1,0,r*.9);
+  cx.closePath();
+}
+function drawHeart(r){          // centered on the current origin
+  cx.save();cx.translate(2,4);cx.fillStyle='rgba(30,70,70,.25)';heartPath(r);cx.fill();cx.restore();
+  cx.fillStyle='#ee5a6f';heartPath(r);cx.fill();
+  cx.strokeStyle='#c53a52';cx.lineWidth=2;cx.lineJoin='round';cx.stroke();
+  cx.fillStyle='rgba(255,255,255,.65)';cx.beginPath();cx.ellipse(-r*.5,-r*.3,r*.22,r*.13,-.6,0,7);cx.fill();
+}
+function drawMystery(r){          // glowing question mark, centered on the current origin
+  const p=1+.08*Math.sin(t*4);
+  const hue=(t*160)%360;
+  const gr=cx.createRadialGradient(0,0,r*.1,0,0,r*1.3*p);     // glow whose colour cycles through the rainbow
+  gr.addColorStop(0,'hsla('+hue+',100%,85%,.95)');gr.addColorStop(.5,'hsla('+((hue+120)%360)+',100%,65%,.6)');gr.addColorStop(1,'hsla('+((hue+240)%360)+',100%,60%,0)');
+  cx.fillStyle=gr;cx.beginPath();cx.arc(0,0,r*1.3*p,0,7);cx.fill();
+  cx.save();cx.rotate(t*3);                                      // spinning chromatic disc
+  for(let i=0;i<12;i++){
+    cx.fillStyle='hsl('+((i*30+t*200)%360)+',90%,60%)';
+    cx.beginPath();cx.moveTo(0,0);cx.arc(0,0,r*.8,i*Math.PI/6,(i+1)*Math.PI/6+.02);cx.closePath();cx.fill();
+  }
+  cx.restore();
+  cx.strokeStyle='#fffaf0';cx.lineWidth=Math.max(2,r*.1);cx.beginPath();cx.arc(0,0,r*.8,0,7);cx.stroke();
+  cx.fillStyle='#fffaf0';                                        // orbiting sparkles
+  for(let i=0;i<3;i++){const a=-t*2.2+i*2.094;cx.beginPath();cx.arc(Math.cos(a)*r*1.05,Math.sin(a)*r*1.05,Math.max(1.5,r*.07),0,7);cx.fill()}
+  cx.textAlign='center';cx.textBaseline='middle';
+  cx.font='bold '+Math.round(r*1.15)+'px "Trebuchet MS",Verdana,sans-serif';
+  cx.lineJoin='round';cx.strokeStyle='#4a2a8a';cx.lineWidth=Math.max(3,r*.18);cx.strokeText('?',0,r*.06);
+  cx.fillStyle='#fffbe0';cx.fillText('?',0,r*.06);
+}
+// ---- mystery tile activation: yellow flashes + lightning across the screen ----
+let zap=null;
+function mkBolt(){
+  const pts=[],br=[];let x=R(W*.1,W*.9),y=-10;pts.push([x,y]);
+  while(y<H+10){y+=R(25,55);x+=R(-45,45);pts.push([x,y])}
+  for(let k=0;k<4;k++){
+    const [sx,sy]=pts[Math.floor(R(1,pts.length-2))],b=[[sx,sy]];let bx=sx,by=sy;const d=R(-1,1)>0?1:-1;
+    for(let j=0;j<4;j++){bx+=d*R(15,40);by+=R(15,40);b.push([bx,by])}
+    br.push(b);
+  }
+  return{pts,br};
+}
+function startZap(){zap={t:0,m:[false,false,false],bolts:[]};SFX.thunder()}
+function updateZap(dt){
+  if(!zap)return;
+  zap.t+=dt;
+  for(let k=0;k<3;k++)if(!zap.m[k]&&zap.t>=k*.3){zap.m[k]=true;zap.bolts=[mkBolt(),mkBolt(),mkBolt()]}
+  if(zap.t>1.3)zap=null;
+}
+function drawZap(){
+  if(!zap)return;
+  const ph=zap.t-Math.min(2,Math.floor(zap.t/.3))*.3;
+  const fa=ph<.05?.8:ph<.15?.8*(1-(ph-.05)/.1):0;                 // 3 yellow flashes, 0.3 s apart
+  if(fa>0){cx.fillStyle='rgba(255,230,40,'+fa+')';cx.fillRect(0,0,W,H)}
+  const ba=Math.max(0,1-ph/.25);
+  if(ba>0){
+    cx.save();cx.globalAlpha=ba;cx.lineCap='round';cx.lineJoin='round';cx.shadowColor='#ffe94a';cx.shadowBlur=20;
+    zap.bolts.forEach(b=>{
+      cx.strokeStyle='#fffdf0';cx.lineWidth=3.5;cx.beginPath();b.pts.forEach((p,i)=>i?cx.lineTo(p[0],p[1]):cx.moveTo(p[0],p[1]));cx.stroke();
+      cx.lineWidth=1.8;b.br.forEach(s=>{cx.beginPath();s.forEach((p,i)=>i?cx.lineTo(p[0],p[1]):cx.moveTo(p[0],p[1]));cx.stroke()});
+    });
+    cx.restore();
+  }
+}
+function drawClam(x,y,r,ph,g){
+  const cx=g||MAINCX;             // g: optional other canvas (used for the score icon)
+  cx.save();cx.translate(x,y+Math.sin(ph)*r*.12);cx.rotate(Math.sin(ph*.8)*.05*(ph?1:0));   // jiggle: bob up and down with a tiny wobble
+  cx.fillStyle='rgba(30,70,70,.25)';cx.beginPath();cx.ellipse(1.5,4,r,r*.6,0,0,7);cx.fill();
+  cx.fillStyle='#f6a99a';cx.beginPath();cx.moveTo(-r,r*.5);cx.quadraticCurveTo(-r*1.1,-r*1.1,0,-r*1.05);cx.quadraticCurveTo(r*1.1,-r*1.1,r,r*.5);cx.quadraticCurveTo(0,r*.9,-r,r*.5);cx.fill();
+  cx.save();cx.clip();   // keep the darker ridges inside the shell's edge
+  cx.strokeStyle='#cf7766';cx.lineWidth=1.5;
+  for(let i=-2;i<=2;i++){cx.beginPath();cx.moveTo(i*r*.18,r*.6);cx.lineTo(i*r*.5,-r*.85);cx.stroke()}
+  cx.restore();
+  cx.strokeStyle='#e68d7c';cx.lineWidth=1.5;cx.beginPath();cx.moveTo(-r,r*.5);cx.quadraticCurveTo(-r*1.1,-r*1.1,0,-r*1.05);cx.quadraticCurveTo(r*1.1,-r*1.1,r,r*.5);cx.quadraticCurveTo(0,r*.9,-r,r*.5);cx.stroke();
+  cx.fillStyle='#fffaf0';cx.beginPath();cx.arc(0,r*.55,r*.22,0,7);cx.fill();
+  cx.restore();
+}
+function drawTile(tl,c,r){
+  const h=cell/2-3;
+  cx.save();cx.translate(cxOf(c),cyOf(r)+Math.sin(t*1.6+c*.9+r*.7)*cell*.025);cx.scale(tl.s,tl.s);
+  if(tl.gone){cx.restore();return}
+  if(tl.clam){drawClam(0,0,cell*.3,t*9+c+r);cx.restore();return}
+  if(tl.q){drawMystery(cell*.3);cx.restore();return}
+  if(tl.heart){drawHeart(cell*.3*(1+.07*Math.sin(t*5)));cx.restore();return}
+  cx.fillStyle='rgba(30,70,70,.22)';rr(-h+2,-h+4,2*h,2*h,cell*.2);cx.fill();
+  cx.fillStyle=tl.gold?'#ffd95e':'#cdebf8';rr(-h,-h,2*h,2*h,cell*.2);cx.fill();
+  cx.strokeStyle=tl.gold?'#d29a14':'#86bde0';cx.lineWidth=3;cx.stroke();
+  cx.fillStyle='rgba(255,255,255,.5)';rr(-h+4,-h+4,2*h-8,h*.45,cell*.1);cx.fill();
+  if(tl.gold){cx.fillStyle='#fffbe0';star4(h*.6,-h*.55,cell*.075*(1+.4*Math.sin(t*5+c+r)))}   // twinkle
+  cx.save();cx.rotate(tl.a);
+  const ends=tl.t==='s'?[0,2]:tl.t==='c'?[0,1]:[0,1,2,3];
+  const pp=new Path2D();
+  if(tl.t==='c'){pp.moveTo(0,-h);pp.lineTo(0,0);pp.lineTo(h,0)}
+  else{pp.moveTo(0,-h);pp.lineTo(0,h);if(tl.t==='x'){pp.moveTo(-h,0);pp.lineTo(h,0)}}
+  cx.lineCap='round';cx.lineJoin='round';
+  cx.strokeStyle=tl.gold?'#c98f12':'#6fa6cc';cx.lineWidth=cell*.27;cx.stroke(pp);
+  cx.strokeStyle='#fffaf0';cx.lineWidth=cell*.19;cx.stroke(pp);
+  cx.fillStyle=tl.boost?'#ffd21f':'#e9866b';
+  cx.strokeStyle='#c78a00';cx.lineWidth=2;
+  ends.forEach(d=>head(d,h*.6,cell*.13,tl.boost));
+  cx.restore();
+  if(tl.clam)drawClam(0,0,cell*.17,t*3+c+r);
+  cx.restore();
+}
+function preview(){
+  const o=otter;let c=o.c,r=o.r,h=o.e;
+  for(let i=0;i<6;i++){
+    const nc=(c+DX[h]+COLS)%COLS,nr=(r+DY[h]+ROWS)%ROWS;
+    const tl=grid[idx(nc,nr)];
+    const ne=tl?exitDir(tl,h):-1;
+    if(ne<0){
+      const x=cxOf(c)+DX[h]*cell*.5,y=cyOf(r)+DY[h]*cell*.5,k=cell*.12;
+      cx.fillStyle='#d9503c';cx.beginPath();cx.arc(x,y,k,0,7);cx.fill();
+      cx.strokeStyle='#fff';cx.lineWidth=2.5;cx.lineCap='round';cx.beginPath();
+      cx.moveTo(x-k*.5,y-k*.5);cx.lineTo(x+k*.5,y+k*.5);cx.moveTo(x+k*.5,y-k*.5);cx.lineTo(x-k*.5,y+k*.5);cx.stroke();
+      return;
+    }
+    c=nc;r=nr;h=ne;
+    cx.fillStyle='#2fc467';cx.strokeStyle='#fff';cx.lineWidth=1.5;
+    cx.beginPath();cx.arc(cxOf(c),cyOf(r),cell*.04,0,7);cx.fill();cx.stroke();
+  }
+}
+function clapFace(){           // delighted face, drawn in the otter's local space
+  cx.strokeStyle='#2b1d17';cx.lineWidth=1.8;cx.lineCap='round';
+  cx.beginPath();                // happy closed eyes
+  cx.arc(-5.5,-21,3.6,Math.PI*1.1,Math.PI*1.9);
+  cx.stroke();cx.beginPath();
+  cx.arc(5.5,-21,3.6,Math.PI*1.1,Math.PI*1.9);
+  cx.stroke();
+  cx.fillStyle='rgba(233,134,107,.6)';cx.beginPath();cx.arc(-10.5,-15,2.8,0,7);cx.arc(10.5,-15,2.8,0,7);cx.fill();
+  cx.fillStyle='#4a1f1f';cx.beginPath();cx.ellipse(0,-12.5,4.6,3.4,0,0,Math.PI);cx.fill();   // big open grin
+  cx.fillStyle='#e9867b';cx.beginPath();cx.ellipse(0,-10.6,2.6,1.3,0,0,Math.PI);cx.fill();
+  const k=Math.abs(Math.cos(t*13));   // little impact lines when the paws meet
+  if(k<.3){
+    cx.strokeStyle='#ffd21f';cx.lineWidth=1.6;cx.beginPath();
+    for(const s of[-1,1]){cx.moveTo(s*10,-9);cx.lineTo(s*15,-12);cx.moveTo(s*11,-4);cx.lineTo(s*17,-4);cx.moveTo(s*10,1);cx.lineTo(s*15,4)}
+    cx.stroke();
+  }
+  cx.fillStyle='#ffe066';        // twinkling sparkles
+  [[-22,-34,0],[23,-30,1.7]].forEach(([x,y,ph])=>{
+    const r=3+Math.sin(t*8+ph)*1.5;
+    cx.beginPath();cx.moveTo(x,y-r);cx.lineTo(x+r*.3,y-r*.3);cx.lineTo(x+r,y);cx.lineTo(x+r*.3,y+r*.3);
+    cx.lineTo(x,y+r);cx.lineTo(x-r*.3,y+r*.3);cx.lineTo(x-r,y);cx.lineTo(x-r*.3,y-r*.3);cx.closePath();cx.fill();
+  });
+}
+function cryFace(){            // drawn in the otter's local space
+  cx.strokeStyle='#2b1d17';cx.lineWidth=1.7;cx.lineCap='round';cx.lineJoin='round';
+  cx.beginPath();                // squeezed-shut eyes
+  cx.moveTo(-9,-25.5);cx.lineTo(-3.5,-22.5);cx.lineTo(-9,-20);
+  cx.moveTo(9,-25.5);cx.lineTo(3.5,-22.5);cx.lineTo(9,-20);
+  cx.stroke();
+  cx.lineWidth=1.5;cx.beginPath();   // worried brows
+  cx.moveTo(-10,-27.5);cx.lineTo(-3,-30.5);cx.moveTo(10,-27.5);cx.lineTo(3,-30.5);
+  cx.stroke();
+  const m=2.2+Math.abs(Math.sin(t*14))*2;   // wailing mouth
+  cx.fillStyle='#4a1f1f';cx.beginPath();cx.ellipse(0,-10.5,4.2,m,0,0,7);cx.fill();
+  cx.fillStyle='#e9867b';cx.beginPath();cx.ellipse(0,-9.2,2.8,m*.45,0,0,7);cx.fill();
+  cx.fillStyle='rgba(120,200,245,.95)';   // fountains of tears
+  for(const s of[-1,1]){
+    cx.beginPath();cx.ellipse(s*6.8,-21.2,4,2.6+Math.sin(t*12)*.5,0,0,7);cx.fill();
+    for(let i=0;i<7;i++){
+      const p=(t*1.9+i/7+(s>0?.07:0))%1;
+      cx.globalAlpha=1-p*.7;
+      cx.beginPath();cx.arc(s*(7+p*16),-21+p*p*34-p*6,3.2*(1-p*.45),0,7);cx.fill();
+    }
+    cx.globalAlpha=1;
+  }
+}
+function drawOtter(){
+  const o=otter;
+  if(o.wait>0&&o.wait<1e6&&Math.floor(t*6)%2===0)return;   // waiting to be rotated: whole body flickers visible/hidden
+  let x=cxOf(o.c)+DX[o.e]*o.p*cell,y=cyOf(o.r)+DY[o.e]*o.p*cell;
+  const nx=o.c+DX[o.e],ny=o.r+DY[o.e];
+  // crossing the pond edge: past the halfway point the otter reappears on the far side (never drawn twice)
+  if(o.p>=.5&&(nx<0||nx>=COLS||ny<0||ny>=ROWS)){x-=DX[o.e]*COLS*cell;y-=DY[o.e]*ROWS*cell}
+  if(slowT>0){                   // snail power-up active: golden glow
+    const p=1+.12*Math.sin(t*6),gr=cx.createRadialGradient(x,y,cell*.1,x,y,cell*.8*p);
+    gr.addColorStop(0,'rgba(255,225,90,.55)');gr.addColorStop(1,'rgba(255,225,90,0)');
+    cx.fillStyle=gr;cx.beginPath();cx.arc(x,y,cell*.8*p,0,7);cx.fill();
+    cx.save();cx.shadowColor='rgba(255,215,60,.95)';cx.shadowBlur=cell*.35*p;otterAt(x,y);cx.restore();
+  }else otterAt(x,y);
+}
+function otterAt(x,y){
+  const o=otter,sw=o.cry||o.clap?0:Math.sin(t*9)*.18;
+  cx.save();cx.translate(x,y);cx.rotate(o.a);cx.scale(cell/125,cell/125);
+  if(o.cry)cx.translate(Math.sin(t*38)*1.3,Math.sin(t*21)*1.1);   // sobbing shudder
+  if(o.clap)cx.translate(0,-Math.abs(Math.sin(t*13))*2.5);   // happy clap-bounce
+  cx.fillStyle='rgba(30,70,70,.22)';cx.beginPath();cx.ellipse(4,6,15,26,0,0,7);cx.fill();
+  cx.save();cx.translate(0,22);cx.rotate(sw);cx.fillStyle='#7a5238';
+  cx.beginPath();cx.moveTo(-6,0);cx.quadraticCurveTo(-5,24,0,34);cx.quadraticCurveTo(5,24,6,0);cx.fill();cx.restore();
+  cx.fillStyle='#7a5238';
+  cx.save();cx.rotate(sw);cx.beginPath();cx.ellipse(-13,16,5,8,-.5,0,7);cx.ellipse(13,16,5,8,.5,0,7);cx.fill();cx.restore();
+  cx.fillStyle='#9a6b48';cx.beginPath();cx.ellipse(0,6,15,24,0,0,7);cx.fill();
+  cx.fillStyle='#e9cfa6';cx.beginPath();cx.ellipse(0,10,8,15,0,0,7);cx.fill();
+  cx.fillStyle='#7a5238';cx.beginPath();
+  if(o.clap){const px=3+Math.abs(Math.cos(t*13))*10;cx.ellipse(-px,-4,4.5,7,.2,0,7);cx.ellipse(px,-4,4.5,7,-.2,0,7)}   // paws clap together
+  else{cx.ellipse(-14,-6,4.5,7,.5-sw,0,7);cx.ellipse(14,-6,4.5,7,-.5+sw,0,7)}
+  cx.fill();
+  cx.fillStyle='#9a6b48';cx.beginPath();cx.arc(0,-20,14,0,7);cx.fill();
+  cx.beginPath();cx.arc(-11,-30,4.5,0,7);cx.arc(11,-30,4.5,0,7);cx.fill();
+  cx.fillStyle='#e9cfa6';cx.beginPath();cx.ellipse(0,-14,9,7,0,0,7);cx.fill();
+  cx.fillStyle='#2b1d17';
+  cx.beginPath();cx.ellipse(0,-17,3.2,2.3,0,0,7);cx.fill();
+  if(o.cry)cryFace();
+  else if(o.clap)clapFace();
+  else{
+    cx.beginPath();cx.arc(-5.5,-22,2.2,0,7);cx.arc(5.5,-22,2.2,0,7);cx.fill();
+    cx.fillStyle='#fff';cx.beginPath();cx.arc(-4.8,-22.8,.8,0,7);cx.arc(6.2,-22.8,.8,0,7);cx.fill();
+  }
+  cx.restore();
+}
+function drawCount(){
+  if(!running||otter.wait<=0)return;
+  if(zen){                       // zen: no countdown, just a hint while you build a path
+    cx.textAlign='center';cx.textBaseline='middle';
+    const s='Tap Otto the otter and tiles, then press Go';
+    cx.font='bold 14px "Trebuchet MS",Verdana,sans-serif';
+    const w=cx.measureText(s).width+24;
+    cx.fillStyle='rgba(253,243,216,.95)';rr(W/2-w/2,60,w,24,12);cx.fill();
+    cx.fillStyle='#2f4a46';cx.fillText(s,W/2,72);
+    return;
+  }
+  const n=Math.ceil(otter.wait),fr=n-otter.wait,r=21*(1+.18*(1-fr));
+  cx.fillStyle='#e9866b';cx.beginPath();cx.arc(W/2,34,r,0,7);cx.fill();
+  cx.strokeStyle='#fff';cx.lineWidth=3;cx.stroke();
+  cx.textAlign='center';cx.textBaseline='middle';
+  cx.fillStyle='#fff';cx.font='bold 24px "Trebuchet MS",Verdana,sans-serif';cx.fillText(n,W/2,35);
+  const s='Tap Otto the otter to turn him';
+  cx.font='bold 14px "Trebuchet MS",Verdana,sans-serif';
+  const w=cx.measureText(s).width+24;
+  cx.fillStyle='rgba(253,243,216,.95)';rr(W/2-w/2,60,w,24,12);cx.fill();
+  cx.fillStyle='#2f4a46';cx.fillText(s,W/2,72);
+}
+function frame(now){
+  const dt=Math.min(.05,(now-(frame.l||now))/1000);frame.l=now;
+  if(!paused)update(dt);
+  drawMenuOtto(dt);
+  cx.save();
+  if(shake>0)cx.translate(R(-1,1)*7*shake,R(-1,1)*7*shake);
+  drawWater();
+  cx.strokeStyle='rgba(255,255,255,.22)';cx.lineWidth=2;cx.setLineDash([6,6]);
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(!grid[idx(c,r)]&&!logs.has(idx(c,r))){const h=cell/2-5;rr(cxOf(c)-h,cyOf(r)-h,2*h,2*h,cell*.2);cx.stroke()}
+  cx.setLineDash([]);
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const g=grid[idx(c,r)];if(g)drawTile(g,c,r);else if(logs.has(idx(c,r)))drawLog(c,r)}
+  preview();
+  drawOtter();
+  drawCount();
+  parts.forEach(p=>{cx.globalAlpha=Math.max(0,p.life);cx.fillStyle=p.col;cx.beginPath();cx.arc(p.x,p.y,p.r,0,7);cx.fill()});
+  cx.globalAlpha=1;
+  cx.restore();
+  if(dark){cx.fillStyle='rgba(0,0,0,'+(1-DIM)+')';cx.fillRect(-20,-20,W+40,H+40)}   // night mode: dim the otter, tiles, power-ups and text
+  drawZap();
+  requestAnimationFrame(frame);
+}
+
+// ---- input: tap a current tile to rotate it ----
+cv.addEventListener('pointerdown',e=>{
+  if(!running)return;
+  const c=Math.floor((e.clientX-ox)/cell),r=Math.floor((e.clientY-oy)/cell);
+  if(!inb(c,r))return;
+  const g=grid[idx(c,r)];
+  if(c===otter.c&&r===otter.r){if(otter.wait>0)otter.e=(otter.e+1)%4}
+  else if(g)g.rot++;
+});
+// "Buy another chance?": carry on from the game-over screen with 3 hearts (score and level are kept)
+$('buy').addEventListener('click',()=>{
+  audio();
+  lives=3;spawn();hud();
+  mode='start';running=true;
+  $('overlay').classList.add('hide');
+  ['hud','restart','pause','ff','snail'].forEach(id=>$(id).classList.remove('hide'));
+});
+$('go').addEventListener('click',()=>{
+  audio();
+  musicStart();$('mute').classList.remove('hide');$('mmute').classList.remove('hide');
+  if(mode==='next'||mode==='retry')spawn();else init();
+  mode='start';running=true;
+  $('overlay').classList.add('hide');$('hud').classList.remove('hide');$('restart').classList.remove('hide');$('pause').classList.remove('hide');$('ff').classList.remove('hide');$('snail').classList.remove('hide');
+});
+// restart from the beginning: first tap arms the button, second tap confirms
+let popT=0,armT=0;
+$('restart').addEventListener('click',()=>{
+  const b=$('restart');
+  if(!b.classList.contains('arm')){
+    b.classList.add('arm');b.textContent='Tap again to restart';
+    clearTimeout(armT);
+    armT=setTimeout(()=>{b.classList.remove('arm');b.textContent='Restart'},2500);
+    return;
+  }
+  clearTimeout(armT);clearTimeout(popT);
+  b.classList.remove('arm');b.textContent='Restart';
+  setPause(false);
+  audio();init();mode='start';running=true;
+  $('overlay').classList.add('hide');
+});
+// pause: blanks the board behind a solid screen, freezes the game and silences the audio
+let paused=false;
+function setPause(p){
+  if(p&&!running)return;
+  paused=p;
+  $('pausescreen').classList.toggle('hide',!p);
+  if(AC){if(p)AC.suspend();else AC.resume()}
+}
+$('pause').addEventListener('click',()=>setPause(true));
+// fixed orientation on phones: ask the browser to lock portrait where it allows it, otherwise pause and cover the screen in landscape
+document.addEventListener('pointerdown',()=>{try{screen.orientation&&screen.orientation.lock&&screen.orientation.lock('portrait').catch(()=>{})}catch(e){}},{once:true});
+try{matchMedia('(orientation: landscape) and (pointer: coarse) and (max-height: 520px)').addEventListener('change',e=>{if(e.matches)setPause(true)})}catch(e){}
+$('snail').addEventListener('click',()=>{if(snailHave&&slowT<=0&&running){snailHave=false;slowT=10}});   // 10 s at half the current speed
+function applyDark(){
+  PAL=dark?PAL_DARK:PAL_LIGHT;
+  document.body.classList.toggle('dark',dark);$('dark').classList.toggle('on',dark);
+  if(typeof paintSetup==='function'&&!$('setup').classList.contains('hide'))paintSetup();
+}
+$('dark').addEventListener('click',()=>{dark=!dark;try{localStorage.setItem('otterDark',dark?'1':'0')}catch(e){}applyDark()});
+applyDark();
+$('ff').addEventListener('click',()=>{ff=!ff;$('ff').classList.toggle('on',ff)});   // toggle: Otto swims 50% faster
+$('resume').addEventListener('click',()=>setPause(false));
+// ---- main menu and modes ----
+function startMode(z){
+  zen=z;
+  audio();musicStart();
+  $('menu').classList.add('hide');$('overlay').classList.add('hide');
+  $('mute').classList.remove('hide');$('mmute').classList.remove('hide');
+  init();mode='start';running=true;
+  $('hud').classList.remove('hide');$('restart').classList.remove('hide');$('pause').classList.remove('hide');$('ff').classList.remove('hide');$('snail').classList.remove('hide');
+}
+function toMenu(){
+  setPause(false);
+  clearTimeout(popT);clearTimeout(armT);
+  running=false;
+  $('restart').classList.remove('arm');$('restart').textContent='Restart';
+  ['hud','restart','pause','ff','snail','letgo','overlay','setup'].forEach(id=>$(id).classList.add('hide'));
+  $('mbest').textContent=best?'High Score: '+best.toLocaleString('en-US'):'';
+  $('menu').classList.remove('hide');
+}
+$('newgame').addEventListener('click',()=>{testMode=false;startMode(false)});
+// ---- Test Mode (temporary): jump straight to level 1-6 of New Game ----
+$('testbtn').addEventListener('click',()=>{$('menu').classList.add('hide');$('testsel').classList.remove('hide')});
+$('testback').addEventListener('click',()=>{$('testsel').classList.add('hide');$('menu').classList.remove('hide')});
+document.querySelectorAll('#tcard [data-lv]').forEach(b=>b.addEventListener('click',()=>{
+  const n=+b.dataset.lv;
+  $('testsel').classList.add('hide');
+  startMode(false);testMode=true;
+  level=n;levelStart=clams;qDone=false;heartTaken=false;
+  spawn();hud();
+}));
+// ---- main menu: Otto swims laps around the menu card ----
+function loopPoint(x0,y0,w,h,r,s){      // point and direction on a rounded rectangle, clockwise
+  const wd=w-2*r,hd=h-2*r,al=Math.PI*r/2,L=2*wd+2*hd+4*al;
+  s=((s%L)+L)%L;
+  const segs=[[wd,'t'],[al,'a',x0+w-r,y0+r,-Math.PI/2],[hd,'r'],[al,'a',x0+w-r,y0+h-r,0],
+              [wd,'b'],[al,'a',x0+r,y0+h-r,Math.PI/2],[hd,'l'],[al,'a',x0+r,y0+r,Math.PI]];
+  for(const sg of segs){
+    if(s<=sg[0]){
+      if(sg[1]==='t')return{x:x0+r+s,y:y0,dx:1,dy:0};
+      if(sg[1]==='r')return{x:x0+w,y:y0+r+s,dx:0,dy:1};
+      if(sg[1]==='b')return{x:x0+w-r-s,y:y0+h,dx:-1,dy:0};
+      if(sg[1]==='l')return{x:x0,y:y0+h-r-s,dx:0,dy:-1};
+      const p=sg[4]+s/r;
+      return{x:sg[2]+r*Math.cos(p),y:sg[3]+r*Math.sin(p),dx:-Math.sin(p),dy:Math.cos(p)};
+    }
+    s-=sg[0];
+  }
+  return{x:x0,y:y0,dx:1,dy:0};
+}
+let menuS=0;
+function drawMenuOtto(dt){
+  if($('menu').classList.contains('hide'))return;
+  const c=$('mcv');
+  if(c.width!==Math.round(W*dpr)||c.height!==Math.round(H*dpr)){c.width=Math.round(W*dpr);c.height=Math.round(H*dpr)}
+  const g=c.getContext('2d');
+  g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
+  const r=$('mcard').getBoundingClientRect(),m=22;
+  const x0=r.left-m,y0=r.top-m,w=r.width+2*m,h=r.height+2*m,rad=Math.min(46,w/4);
+  menuS+=dt*120;
+  g.strokeStyle='rgba(255,255,255,.45)';g.lineWidth=2.5;           // ripples trailing behind
+  for(let k=1;k<=6;k++){
+    const q=loopPoint(x0,y0,w,h,rad,menuS-k*22);
+    g.globalAlpha=.55-k*.08;g.beginPath();g.arc(q.x,q.y,5+k*1.6,0,7);g.stroke();
+  }
+  g.globalAlpha=1;
+  const p=loopPoint(x0,y0,w,h,rad,menuS);
+  const sCx=cx,sCell=cell,sOt=otter;
+  cx=g;cell=84;otter={a:Math.atan2(p.dx,-p.dy),e:0,p:0};
+  try{otterAt(p.x,p.y)}finally{cx=sCx;cell=sCell;otter=sOt}
+}
+(function(){                           // title letters on a wave
+  const mt=$('mtitle');
+  [...'OTTO RUN'].forEach((ch,i)=>{
+    const s=document.createElement('span');
+    s.textContent=ch===' '?' ':ch;s.style.setProperty('--i',i);mt.appendChild(s);
+  });
+})();
+// ---- How to Play: examples drawn with the game's own drawing code ----
+function inIcon(id,fn){
+  const c=$(id),g=c.getContext('2d');
+  const sCx=cx,sCell=cell,sOx=ox,sOy=oy,sOt=otter;
+  cx=g;cell=128;ox=0;oy=0;
+  g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,128,128);
+  const w=g.createLinearGradient(0,0,0,128);w.addColorStop(0,'#8fd3c6');w.addColorStop(1,'#4fa6a6');
+  g.fillStyle=w;g.fillRect(0,0,128,128);
+  try{fn(g)}finally{cx=sCx;cell=sCell;ox=sOx;oy=sOy;otter=sOt}
+}
+function drawInfo(){
+  inIcon('i_otter',()=>{otter={a:0,e:0,p:0};otterAt(64,53)});
+  inIcon('i_tile',()=>drawTile({t:'c',rot:0,a:0,s:1,clam:false},0,0));
+  inIcon('i_boost',()=>drawTile({t:'s',rot:0,a:0,s:1,clam:false,boost:true},0,0));
+  inIcon('i_gold',()=>drawTile({t:'x',rot:0,a:0,s:1,clam:false,gold:true},0,0));
+  inIcon('i_empty',g=>{
+    g.strokeStyle='rgba(255,255,255,.6)';g.lineWidth=3;g.setLineDash([9,9]);
+    const h=cell/2-8;rr(cxOf(0)-h,cyOf(0)-h,2*h,2*h,cell*.2);g.stroke();g.setLineDash([]);
+  });
+  inIcon('i_clam',g=>drawClam(64,66,40,0,g));
+  inIcon('i_heart',()=>{cx.save();cx.translate(64,62);drawHeart(42);cx.restore()});
+  inIcon('i_mystery',()=>{cx.save();cx.translate(64,64);drawMystery(42);cx.restore()});
+  inIcon('i_wood',()=>drawLog(0,0));
+}
+$('infobtn').addEventListener('click',()=>{
+  $('menu').classList.add('hide');$('info').classList.remove('hide');$('info').scrollTop=0;
+  $('mute').classList.add('hide');$('mmute').classList.add('hide');
+  drawInfo();
+});
+$('infoback').addEventListener('click',()=>{$('info').classList.add('hide');$('menu').classList.remove('hide');$('mute').classList.remove('hide');$('mmute').classList.remove('hide')});
+function paintSetup(){             // the screen itself previews the chosen water colour
+  document.querySelectorAll('#bgopts .sw').forEach((s,i)=>{s.style.background='linear-gradient(rgb('+PAL[i][0].join(',')+'),rgb('+PAL[i][1].join(',')+'))'});   // swatches follow dark mode
+  const p=PAL[zenBg];
+  $('setup').style.background='linear-gradient(rgb('+p[0].join(',')+'),rgb('+p[1].join(',')+'))';
+  document.querySelectorAll('#bgopts .opt').forEach((b,i)=>b.classList.toggle('sel',i===zenBg));
+  document.querySelectorAll('#muopts .opt').forEach((b,i)=>b.classList.toggle('sel',i===zenMusic));
+}
+document.querySelectorAll('#bgopts .opt').forEach((b,i)=>b.addEventListener('click',()=>{zenBg=i;paintSetup()}));
+document.querySelectorAll('#muopts .opt').forEach((b,i)=>b.addEventListener('click',()=>{
+  zenMusic=i;paintSetup();audio();musicStart();      // playing it is the preview
+}));
+$('zenbtn').addEventListener('click',()=>{
+  zen=true;
+  $('menu').classList.add('hide');$('setup').classList.remove('hide');
+  $('mute').classList.remove('hide');$('mmute').classList.remove('hide');
+  paintSetup();
+});
+$('zenstart').addEventListener('click',()=>{$('setup').classList.add('hide');startMode(true)});
+$('setupback').addEventListener('click',()=>{
+  zen=false;
+  $('setup').classList.add('hide');$('menu').classList.remove('hide');
+});
+$('tomenu').addEventListener('click',toMenu);
+$('menu2').addEventListener('click',toMenu);
+$('letgo').addEventListener('click',()=>{
+  if(running&&otter&&otter.wait>0){otter.wait=0;$('letgo').classList.add('hide')}
+});
+function setMusicMute(m){          // mutes only the background music, sound effects stay on
+  musicMuted=m;try{localStorage.setItem('otterMusicMute',m?'1':'0')}catch(e){}
+  $('mmute').classList.toggle('off',m);
+  if(MG)MG.gain.value=m?0:.3;
+}
+$('mmute').addEventListener('click',()=>{audio();setMusicMute(!musicMuted)});
+setMusicMute(musicMuted);
+function setMute(m){
+  muted=m;try{localStorage.setItem('otterMute',m?'1':'0')}catch(e){}
+  $('mute').textContent=m?'🔇':'🔊';
+  if(OUT)OUT.gain.value=m?0:1;
+}
+$('mute').addEventListener('click',()=>{audio();setMute(!muted)});
+setMute(muted);
+$('mute').classList.remove('hide');$('mmute').classList.remove('hide');   // sound buttons are available on the main menu too
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){if(running)setPause(true);else if(AC)AC.suspend()}   // leaving the page pauses the game
+  else if(AC&&!paused)AC.resume();
+});
+addEventListener('resize',resize);
+resize();
+for(let i=0;i<20;i++)ripples.push({x:R(0,W),y:R(0,H),w:R(18,40)});
+$('best').textContent=best?'Best: '+best:'';
+$('mbest').textContent=best?'High Score: '+best.toLocaleString('en-US'):'';
+drawClam(28,29,18,0,$('sico').getContext('2d'));   // same clam as on the board, shrunk for the score
+init();requestAnimationFrame(frame);
+</script>
+<script>if('serviceWorker' in navigator&&location.protocol!=='file:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))</script>
+</body>
+</html>
