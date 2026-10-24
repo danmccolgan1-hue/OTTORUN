@@ -169,7 +169,7 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 <button id="infobtn" class="alt">How to Play</button>
 <button id="colbtn" class="alt">Rock Collection</button>
 <button id="patchbtn" class="alt">Patch Notes</button>
-<button id="testbtn" class="alt">Test Mode</button><p id="mbest"></p><p id="ver">Version: 0.99</p>
+<button id="testbtn" class="alt">Test Mode</button><p id="mbest"></p><p id="ver">Version: 1.04</p>
 </div></div>
 <div id="info" class="hide"><div id="icard">
 <h1>How to Play</h1>
@@ -212,6 +212,13 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 <li>Tap a rock in your collection to have Otto hold it while swimming, on the board and on the menu.</li>
 <li>Renamed the Collection screen and menu button to Rock Collection.</li>
 <li>Added this Patch Notes window.</li>
+<li>New level generation: each level has 1 clam plus two crossroads where the next two clams will appear, and a route to all three is checked at the start.</li>
+<li>Tiles are no longer rearranged to save you from a dead end; only empty water gets new tiles.</li>
+<li>Otto now speeds up by 3% per tile instead of 5%.</li>
+<li>Rocks now have a 30% chance per clam from level 3, appear on crossroads, and come once per 3-level stretch (every 10 clams from level 12).</li>
+<li>The clam and its two future clam crossroads are always more than 3 moves apart.</li>
+<li>Every level now starts with no empty water tiles.</li>
+<li>While you have no rocks, level 1 holds a common rock and the tutorial explains it.</li>
 <li>Longer countdown: 10 seconds on levels 1 to 3 and 7 seconds after that.</li>
 <li>Added a first-time tutorial on level 1, with a Tutorial On checkbox in How to Play.</li>
 <li>Rocks you already collected are kept when you update.</li>
@@ -550,7 +557,7 @@ function newTile(plain){          // plain: only a normal (or golden) tile, neve
 function fill(keep,force){
   for(let i=0;i<COLS*ROWS;i++){
     if(i===keep)continue;
-    grid[i]=(i===force||level===1||Math.random()<.86)?newTile():null;
+    grid[i]=newTile();   // every level starts with no empty water (wood cells are cleared afterwards)
   }
 }
 // fairness: can Otto reach cell `target` if the player rotates tiles optimally?
@@ -610,143 +617,107 @@ function cheb(i,j){
   const a=i%COLS,b=(i-a)/COLS,c=j%COLS,d=(j-c)/COLS,dc=Math.abs(a-c),dr=Math.abs(b-d);
   return Math.max(Math.min(dc,COLS-dc),Math.min(dr,ROWS-dr));
 }
-// carve a route from Otto to cell i that is certain to work: tiles on the way are retyped as straight tiles where the
-// route goes on and corner tiles where it turns (hearts and mystery tiles stay crossings, so the route goes straight
-// through them). It never uses wood or Otto's own cell and never uses a cell twice.
-function carvePath(i,fr,relax,via){          // via: optional cell (a rock) the route must pass through before the clam
-  const o=otter,me=idx(o.c,o.r),seen=new Set(),q=[];
-  for(const h of (fr?[0,1,2,3]:[o.e])){seen.add((me*4+h)*2);q.push({cell:me,h,f:0,path:[]})}
-  while(q.length){
-    const s=q.shift(),c=s.cell%COLS,r=(s.cell-c)/COLS;
-    const n=idx((c+DX[s.h]+COLS)%COLS,(r+DY[s.h]+ROWS)%ROWS);
-    if(n===i&&via!==undefined&&!s.f)continue;     // the clam must come after the rock
-    if(n===i){                                   // found: build the tiles along the route
-      s.path.forEach(st=>{
-        const ex=grid[st.cell];
-        if(ex&&(ex.gold||ex.rock))return;             // golden tiles and rocks stay exactly as they are
-        const before=ex?sig(ex):null;
-        const tl=ex||(grid[st.cell]=newTile(true));
-        if(!ex)tl.gold=false;
-        if(relax){tl.heart=false;tl.q=false}
-        if(!(tl.heart||tl.q))tl.t=st.entry===st.exit?'s':'c';
-        for(let rot=0;rot<4;rot++){tl.rot=rot;if(exitDir(tl,st.entry)===st.exit)break}
-        tl.a=tl.rot*PI2;
-        if(markNew&&(before===null||before!==sig(tl)))tl.hl=true;
-      });
-      return true;
-    }
-    if(logs.has(n)||n===me||s.path.some(st=>st.cell===n))continue;
-    const tl=grid[n],fixed=!relax&&tl&&(tl.heart||tl.q);
-    const outs=tl&&tl.rock?[s.h]:tl&&tl.gold?outsOf(tl,s.h):fixed?[s.h]:[s.h,(s.h+1)%4,(s.h+3)%4];   // rocks go straight on; golden tiles can't be changed or turned
-    const nf=s.f||n===via?1:0;
-    for(const nh of outs){
-      const k=(n*4+nh)*2+nf;
-      if(seen.has(k))continue;
-      seen.add(k);q.push({cell:n,h:nh,f:nf,path:s.path.concat([{cell:n,entry:s.h,exit:nh}])});
-    }
-  }
-  return relax?false:carvePath(i,fr,true,via);   // last resort: a heart / mystery tile in the way turns into a normal tile
-}
-// a clam at cell i: empty water within 1 tile becomes normal tiles, and the clam is guaranteed reachable
-function settleClam(i,fr){
-  const me=idx(otter.c,otter.r);
-  for(let n=0;n<grid.length;n++){
-    if(n===i||n===me||cheb(n,i)!==1||logs.has(n))continue;
-    if(!grid[n]){grid[n]=newTile(true);if(markNew)grid[n].hl=true}     // normal (or golden) tile
-  }
-  if(!simpleReach(i,fr)&&!carvePath(i,fr)){     // guaranteed: a carved path is a simple path
-    const rk=grid.findIndex(g=>g&&g.rock);       // last resort (very rare): the rock is in the way, so it turns into a normal tile
-    if(rk>=0){grid[rk]=newTile(true);carvePath(i,fr)}
-  }
+// route check: can Otto (rotating tiles optimally) visit the target cells in this order? Tiles vanish once crossed, so a cell is never reused,
+// and a later target may not be crossed before its turn. fr: any starting heading (the player can still turn Otto).
+function routeOK(targets,fr,budget=30000){
+  const o=otter,start=idx(o.c,o.r),used=new Uint8Array(grid.length);used[start]=1;
+  const go=(cell,h,k)=>{
+    if(--budget<0)return false;
+    const c=cell%COLS,r=(cell-c)/COLS,ni=idx((c+DX[h]+COLS)%COLS,(r+DY[h]+ROWS)%ROWS);
+    if(used[ni]||logs.has(ni))return false;
+    const tl=grid[ni];if(!tl)return false;
+    let nk=k;
+    if(ni===targets[k]){nk=k+1;if(nk===targets.length)return true}
+    else if(targets.includes(ni))return false;
+    used[ni]=1;
+    for(const nh of outsOf(tl,h))if(go(ni,nh,nk)){used[ni]=0;return true}
+    used[ni]=0;return false;
+  };
+  for(const h of (fr?[0,1,2,3]:[o.e]))if(go(start,h,0))return true;
+  return false;
 }
 // ---- rocks: rare collectibles on levels 3, 6, 9, 12 ... ----
 const rockTile=name=>({t:'x',rot:0,a:0,s:0,clam:false,heart:false,q:false,gold:false,boost:false,rock:name});
 function pickRock(lv){
   // chance (%) of common, uncommon, rare, epic, legendary
-  const T=lv>=12?[0,0,50,40,10]:lv>=9?[0,25,50,20,5]:lv>=6?[50,35,14,1,0]:[80,19,1,0,0];
+  const T=lv>=12?[0,0,50,40,10]:lv>=9?[0,25,50,20,5]:lv>=6?[50,35,14,1,0]:[80,19,1,0,0];   // levels 3-5 use the level 3 odds, 6-8 the level 6 odds, 9-11 the level 9 odds, 12+ the level 12 odds
   let roll=Math.random()*100,rar=1;
   for(let k=0;k<5;k++){if(roll<T[k]){rar=k+1;break}roll-=T[k];rar=k+1}
   const of=r=>Rocks.ROCKS.filter(x=>x.r===r);
   if(rar===5&&of(5).every(x=>rockCounts[x.n]>0))rar=4;       // the legendary can only be found once: roll an epic instead
   const a=of(rar).filter(x=>!x.zenOnly);return a[Math.floor(Math.random()*a.length)];
 }
-// put a rock on one of the cells that were empty before this respawn. The route Otto -> rock -> clam must exist (so it is never a dead end).
-function placeRock(fresh){
-  const clamIdx=grid.findIndex(g=>g&&g.clam);if(clamIdx<0)return false;
-  const me=idx(otter.c,otter.r);
-  const cands=fresh.filter(c=>{const g=grid[c];return g&&c!==me&&!logs.has(c)&&!g.clam&&!g.heart&&!g.q&&!g.gold&&!g.rock});
-  for(let i=cands.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[cands[i],cands[j]]=[cands[j],cands[i]]}
-  if(!cands.length)return false;
-  const spec=pickRock(level),rt=rockTile(spec.n);rt.t0=t;
-  for(const c of cands){                              // 1) a route already exists through the board as it is
-    const old=grid[c];grid[c]=rt;
-    if(simpleReach(clamIdx,false,40000,c))return true;
-    grid[c]=old;
-  }
-  for(const c of cands.slice(0,14)){                  // 2) carve a route through the rock to the clam
-    const snap=grid.map(g=>g&&{...g}),old=grid[c];grid[c]=rt;
-    if(carvePath(clamIdx,false,false,c))return true;
-    for(let i=0;i<grid.length;i++)grid[i]=snap[i];
-  }
-  return false;                                       // no safe spot: no rock this time
+// a rock replaces one crossroads tile (never the clam, a future clam spot, Otto's tile, wood, hearts, mystery or golden tiles)
+const crossTile=()=>({t:'x',rot:0,a:0,s:0,clam:false,heart:false,q:false,gold:false,boost:false});
+function placeRock(name){
+  const me=idx(otter.c,otter.r),c=[];
+  for(let i=0;i<grid.length;i++){const g=grid[i];if(g&&g.t==='x'&&!g.gold&&!g.heart&&!g.q&&!g.clam&&!g.rock&&i!==me&&!logs.has(i)&&!desig.includes(i))c.push(i)}
+  if(!c.length)return false;
+  const rt=rockTile(name||pickRock(level).n);rt.t0=t;
+  grid[c[Math.floor(Math.random()*c.length)]]=rt;return true;
 }
 function showRockFound(spec){
   const e=document.createElement('div');e.className='rtoast';
   e.innerHTML='<b style="color:'+Rocks.RARC[spec.r]+'">'+Rocks.R_NAMES[spec.r]+'</b> '+spec.n+' found!';
   e.style.borderColor=Rocks.RARC[spec.r];document.body.appendChild(e);setTimeout(()=>e.remove(),2300);
 }
-// respawn: every EMPTY cell (open water) gets a new tile. Existing tiles, wood, the clam and Otto's cell are untouched.
-function refillEmpty(){
-  const o=otter,me=idx(o.c,o.r);
-  for(let i=0;i<grid.length;i++){
-    if(i===me||logs.has(i)||grid[i])continue;
-    const ahead=idx((o.c+DX[o.e]+COLS)%COLS,(o.r+DY[o.e]+ROWS)%ROWS);
-    grid[i]=newTile(i===ahead);        // the cell right in front of Otto, if it was empty, gets a plain tile
+// respawn: every EMPTY cell (open water) gets a new tile; existing tiles, wood and Otto's cell are untouched.
+// Future clam crossroads always come back as crossroads. If a clam is out there and Otto can't reach it, the NEW tiles are re-rolled (up to 30 times).
+// If it still can't be reached (wood or old tiles in the way) nothing else is changed.
+const emptyCells=()=>{const me=idx(otter.c,otter.r),a=[];for(let i=0;i<grid.length;i++)if(i!==me&&!logs.has(i)&&!grid[i])a.push(i);return a};
+function refillSmart(empties,target){
+  const o=otter,ahead=idx((o.c+DX[o.e]+COLS)%COLS,(o.r+DY[o.e]+ROWS)%ROWS);
+  const cells=empties.filter(i=>i!==target),q0=qDone;
+  let ok=false;
+  for(let a=0;a<30&&!ok;a++){
+    qDone=q0;cells.forEach(i=>{grid[i]=null});
+    cells.forEach(i=>{grid[i]=desig.includes(i)?crossTile():newTile(i===ahead)});     // the cell right in front of Otto gets a plain tile
+    ok=target<0||simpleReach(target,false);
   }
+  return ok;
 }
-function placeClam(first,free){
-  if(grid.some(g=>g&&g.clam))return;
-  if(!zen&&clams-levelStart>=3)return;   // 3 clams collected this level: no 4th clam
-  const mk=()=>({t:'x',rot:0,a:0,s:0,clam:true,heart:false,boost:false});
-  if(zen){                       // zen: the clam may replace ANY tile (even a non-empty one) more than 2 moves from Otto
-    const far=[];
-    for(let i=0;i<grid.length;i++){
-      const c=i%COLS,r=(i-c)/COLS,dc=Math.abs(c-otter.c),dr=Math.abs(r-otter.r);
-      if(Math.min(dc,COLS-dc)+Math.min(dr,ROWS-dr)>2)far.push(i);
-    }
-    if(far.length)grid[far[Math.floor(Math.random()*far.length)]]=mk();
-    return;
+// the next clam spawns on one of the designated crossroads (it can only replace a crossroads)
+function nextClam(refill){
+  const me=idx(otter.c,otter.r),pend=desig.filter(i=>i!==me);
+  if(!pend.length)return;
+  const empties=refill?emptyCells():[];
+  let chosen=pend[pend.length-1];
+  for(let k=0;k<pend.length;k++){
+    const D=pend[k],old=grid[D];
+    grid[D]={...crossTile(),clam:true};
+    if(refill?refillSmart(empties,D):simpleReach(D,false)){chosen=D;break}
+    if(k<pend.length-1)grid[D]=old||null;       // try the other designated crossroad
   }
-  const near=i=>{const c=i%COLS,r=(i-c)/COLS,dc=Math.abs(c-otter.c),dr=Math.abs(r-otter.r);return Math.min(dc,COLS-dc)<=1&&Math.min(dr,ROWS-dr)<=1};   // within 1 tile (8 around + Otto's own)
-  const put=i=>{grid[i]=mk();settleClam(i,free)};   // place the clam, then make its surroundings fair
-  const pick=a=>a[Math.floor(Math.random()*a.length)];
-  const me=idx(otter.c,otter.r);
-  const ok=i=>i!==me&&!logs.has(i)&&!(grid[i]&&(grid[i].heart||grid[i].q||grid[i].rock))&&(!free||!near(i));
-  const all=[];for(let i=0;i<grid.length;i++)if(ok(i)&&woodFree(i))all.push(i);   // never within 1 tile of wood
-  const stages=[
-    all.filter(i=>!grid[i]&&clamReachable(i,free)),     // 1) empty water it can reach
-    all.filter(i=>grid[i]&&clamReachable(i,free)),      // 2) replacing a tile it can reach
-    all                                                 // 3) any wood-free cell (a path is carved to it)
-  ];
-  for(const st of stages)if(st.length){put(pick(st));return}
-  const last=[];for(let i=0;i<grid.length;i++)if(ok(i))last.push(i);   // 4) never expected: wood everywhere
-  if(last.length)put(pick(last));
+  desig=desig.filter(i=>i!==chosen);
+}
+function placeClam(first,free){             // Zen only: the clam may replace ANY tile (even a non-empty one) more than 2 moves from Otto
+  if(!zen||grid.some(g=>g&&g.clam))return;
+  const mk=()=>({t:'x',rot:0,a:0,s:0,clam:true,heart:false,boost:false});
+  const far=[];
+  for(let i=0;i<grid.length;i++){
+    const c=i%COLS,r=(i-c)/COLS,dc=Math.abs(c-otter.c),dr=Math.abs(r-otter.r);
+    if(Math.min(dc,COLS-dc)+Math.min(dr,ROWS-dr)>2)far.push(i);
+  }
+  if(far.length)grid[far[Math.floor(Math.random()*far.length)]]=mk();
 }
 // ---- first-run tutorial (level 1, once): tap through 4 hints while the countdown is held ----
 let tutOn=false,tutStep=0;
 let tutRunDone=false;   // the tutorial shows once per new game, not on every retry
 const tutWanted=()=>{try{const v=localStorage.getItem('ottoTutOn');return v===null?true:v==='1'}catch(e){return true}};   // default On
 const setTutWanted=v=>{try{localStorage.setItem('ottoTutOn',v?'1':'0')}catch(e){}};
-const TUT=[
+const TUT0=[
   {t:'You can rotate Otto during the countdown. Tap him to turn him.',sp:'otto'},
   {t:'Otto moves head first, so point him where you want to go.',sp:'otto'},
   {t:'Corner and straight tiles can be rotated too. Tap a tile to turn it.',sp:'board'},
   {t:'The goal of each level is to reach 3 clams.',sp:'clam'}];
+let TUT=TUT0;
+const noRocks=()=>!Object.values(rockCounts).some(n=>n>0);
 function tutShow(){
   const st=TUT[tutStep],sp=$('tutspot'),b=$('tutbox');
   let x=W/2,y=H/2,w=0,h=0,rad=0;
   if(st.sp==='otto'){x=cxOf(otter.c);y=cyOf(otter.r);w=h=cell*1.15;rad=cell}
   else if(st.sp==='board'){x=ox+COLS*cell/2;y=oy+ROWS*cell/2;w=COLS*cell+8;h=ROWS*cell+8;rad=24}
+  else if(st.sp==='rock'){const ri=grid.findIndex(g=>g&&g.rock);if(ri>=0){x=cxOf(ri%COLS);y=cyOf(Math.floor(ri/COLS));w=h=cell*1.1;rad=cell}}
   else{const ci=grid.findIndex(g=>g&&g.clam);if(ci>=0){x=cxOf(ci%COLS);y=cyOf(Math.floor(ci/COLS));w=h=cell*1.1;rad=cell}}
   sp.style.cssText='left:'+(x-w/2)+'px;top:'+(y-h/2)+'px;width:'+w+'px;height:'+h+'px;border-radius:'+rad+'px';
   $('tuttxt').textContent=st.t;$('tutnext').textContent=tutStep<TUT.length-1?'Tap to continue':'Tap to start';
@@ -754,6 +725,9 @@ function tutShow(){
 }
 function tutStart(){
   if(zen||level!==1||tutRunDone||!tutWanted()){tutOn=false;$('tut').classList.add('hide');return}
+  TUT=TUT0.slice();
+  const rockStep=noRocks()&&grid.some(g=>g&&g.rock);   // the rock explanation shows whenever the player has no rocks yet
+  if(rockStep)TUT.push({t:'That is a rock, a rare collectible! Collect it and you can view and equip it in the Rock Collection.',sp:'rock',rock:true});
   tutOn=true;tutStep=0;$('tut').classList.remove('hide');tutShow();
 }
 function tutEnd(done){
@@ -762,33 +736,79 @@ function tutEnd(done){
     try{if(localStorage.getItem('ottoTutDone')!=='1'){localStorage.setItem('ottoTutDone','1');setTutWanted(false)}}catch(e){}   // after the very first tutorial it switches itself Off; after that only the checkbox changes it
   }
 }
+let desig=[];                // the (up to) two crossroads where clams 2 and 3 of this level will appear
+let rockLock=3,rockLastClams=-99;   // a rock may spawn once level >= rockLock; from level 12 a 10-clam cooldown applies instead
+const shuf=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 function spawn(){
-  const c=Math.floor(COLS/2),r=Math.floor(ROWS/2);
-  grid=new Array(COLS*ROWS).fill(null);logs.clear();rockSpawned=false;
+  const c=Math.floor(COLS/2),r=Math.floor(ROWS/2),me=idx(c,r);
+  logs.clear();rockSpawned=false;desig=[];
   ff=false;moved=false;$('ff').classList.remove('on');
   speed=BASE*startMul();          // every level (and every retry) starts at its own base speed
-  fill(-1,idx(c,r-1));
-  grid[idx(c,r)]={t:'x',rot:0,a:0,s:0,clam:false};
   // level 2 starts with 1 block of wood, +1 per level, capped at 8 from level 9 on. It stays put all level long.
   const nLogs=level<2?0:Math.min(8,level-1);
   if(nLogs){
-    const me=idx(c,r),others=[];
-    for(let i=0;i<grid.length;i++)if(i!==me)others.push(i);
+    const others=[];
+    for(let i=0;i<COLS*ROWS;i++)if(i!==me)others.push(i);
     let chosen=null;
     for(let attempt=0;attempt<300&&!chosen;attempt++){
       const pool=others.slice(),pickd=[];
       for(let k=0;k<nLogs;k++)pickd.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
       const set=new Set(pickd);
       let open=0;for(let d=0;d<4;d++)if(!set.has(idx((c+DX[d]+COLS)%COLS,(r+DY[d]+ROWS)%ROWS)))open++;
-      let spots=0;for(let i=0;i<grid.length;i++)if(cheb(i,me)>1&&pickd.every(l=>cheb(l,i)>1))spots++;   // places a clam may go
+      let spots=0;for(let i=0;i<COLS*ROWS;i++)if(cheb(i,me)>1&&pickd.every(l=>cheb(l,i)>1))spots++;   // places a clam may go
       if(open>=3&&spots>=6)chosen=pickd;
     }
-    (chosen||others.slice(0,nLogs)).forEach(i=>{grid[i]=null;logs.add(i)});
+    (chosen||others.slice(0,nLogs)).forEach(i=>logs.add(i));
   }
   sinceResp=0;
   otter={c,r,e:0,p:0,a:0,wait:zen?Infinity:level<=3?10:7};   // countdown: 10 s on levels 1-3, 7 s after; zen: the otter waits until you press Go
-  placeClam(level===1,true);
-  if(zen)$('letgo').classList.remove('hide');
+  if(zen){
+    grid=new Array(COLS*ROWS).fill(null);
+    fill(-1,idx(c,r-1));
+    grid[me]={t:'x',rot:0,a:0,s:0,clam:false};
+    placeClam(true,true);
+    $('letgo').classList.remove('hide');
+    tutStart();return;
+  }
+  // New Game: the level has 1 clam and at least 2 more crossroads that are the future clam spots. Check Otto can reach the clam, then one crossroads, then the other.
+  const firstRock=level===1&&noRocks()&&(tutWanted()||(()=>{try{return localStorage.getItem('ottoFirstRock')==='1'}catch(e){return false}})());   // level 1 holds a common rock while the player owns none (and the tutorial is on, or it is a brand-new phone)
+  const q0=qDone;
+  const mv=(i,j)=>{const a=i%COLS,b=(i-a)/COLS,c2=j%COLS,d=(j-c2)/COLS,dc=Math.abs(a-c2),dr=Math.abs(b-d);return Math.min(dc,COLS-dc)+Math.min(dr,ROWS-dr)};
+  const free=[];for(let i=0;i<COLS*ROWS;i++)if(i!==me&&!logs.has(i))free.push(i);
+  let trip=[];
+  for(const x of free){if(cheb(x,me)<=1)continue;for(const y of free)if(y!==x&&mv(x,y)>3)for(const z of free)if(z!==x&&z!==y&&mv(x,z)>3&&mv(y,z)>3)trip.push([x,y,z])}
+  if(!trip.length){                       // (very crowded wood) fall back to cells that are at least 3 moves apart
+    for(const x of free){if(cheb(x,me)<=1)continue;for(const y of free)if(y!==x&&mv(x,y)>2)for(const z of free)if(z!==x&&z!==y&&mv(x,z)>2&&mv(y,z)>2)trip.push([x,y,z])}
+  }
+  let ok=false;
+  for(let att=0;att<1500&&!ok;att++){
+    qDone=q0;desig=[];
+    grid=new Array(COLS*ROWS).fill(null);
+    fill(-1,idx(c,r-1));
+    logs.forEach(i=>{grid[i]=null});
+    grid[me]={t:'x',rot:0,a:0,s:0,clam:false};
+    // the clam and the two future clam crossroads: cells more than 3 moves apart from each other (and the clam not next to Otto)
+    const tr=trip[Math.floor(Math.random()*trip.length)];
+    if(!tr)continue;
+    const [C1,Da,Db]=tr;
+    [C1,Da,Db].forEach(i=>{const g=grid[i];if(!(g&&g.t==='x'&&!g.gold&&!g.heart&&!g.q))grid[i]=crossTile()});
+    let RK=-1;
+    if(firstRock){const cand=[];for(let i=0;i<grid.length;i++)if(i!==me&&i!==C1&&i!==Da&&i!==Db&&!logs.has(i)&&grid[i]&&grid[i].t==='x'&&!grid[i].gold&&!grid[i].heart&&!grid[i].q)cand.push(i);
+      if(!cand.length)continue;RK=cand[Math.floor(Math.random()*cand.length)]}
+    let order=null;
+    if(routeOK([C1,Da,Db],true))order=[Da,Db];else if(routeOK([C1,Db,Da],true))order=[Db,Da];
+    if(!order)continue;
+    if(firstRock&&!routeOK([RK],true))continue;
+    grid[C1]={...crossTile(),clam:true};
+    desig=order;
+    if(firstRock){const cm=Rocks.ROCKS.filter(x=>x.r===1),rt=rockTile(cm[Math.floor(Math.random()*cm.length)].n);rt.t0=t;grid[RK]=rt}
+    ok=true;
+  }
+  if(!ok){                                    // (practically never) no layout passed the route check: use the last one but make sure there is a clam and two future spots
+    const tr=trip[Math.floor(Math.random()*trip.length)]||[0,1,2].map(k=>free[k]);
+    tr.forEach(i=>{const g=grid[i];if(!(g&&g.t==='x'&&!g.gold&&!g.heart&&!g.q))grid[i]=crossTile()});
+    grid[tr[0]]={...crossTile(),clam:true};desig=[tr[1],tr[2]];
+  }
   tutStart();
 }
 function init(){
@@ -796,7 +816,7 @@ function init(){
   const c0=(W-16)/COLS;
   ROWS=8;   // fixed 8 x 5 board on every device
   grid=[];layout();
-  floats=[];runRocks={};clams=0;score=0;qDone=false;snailHave=false;slowT=0;thr=1000;lives=3;speed=.5;removed=0;level=1;levelStart=0;heartTaken=false;shake=0;parts=[];t=0;
+  floats=[];runRocks={};rockLock=3;rockLastClams=-99;clams=0;score=0;qDone=false;snailHave=false;slowT=0;thr=1000;lives=3;speed=.5;removed=0;level=1;levelStart=0;heartTaken=false;shake=0;parts=[];t=0;
   spawn();hud();
 }
 function hud(){
@@ -832,7 +852,7 @@ function arrive(){
   if(gotClam&&!zen)otter.chew=2;                    // 2 s of chewing
   if(tl.clam){tl.clam=false;tl.gone=true;clams=zen?Math.min(999,clams+1):clams+1;hud();SFX.clam();if(!zen&&clams-levelStart===3)SFX.jingleLow();burst(cxOf(nc),cyOf(nr),'#fff6c8',10)}
   if(!(left&&left.gold)){removed++;sinceResp++}   // a golden tile doesn't count as an expired tile
-  speed=Math.min(speed*1.05,BASE*capMul());   // +5% per tile up to this level's cap (level 1 never speeds up)
+  speed=Math.min(speed*1.03,BASE*capMul());   // +3% per tile up to this level's cap (level 1 never speeds up)
   if(zen){
     if(removed%3===0){                // zen: every 3 tiles, 3 empty cells get new tiles
       const empty=[];
@@ -843,25 +863,22 @@ function arrive(){
     // New Game: after a clam, or after 5 tiles (6 on level 5, 7 from level 6), every empty cell gets a new tile
     const every=level>=6?7:level===5?6:5;
     const allowed=clams-levelStart<3&&!(level===1&&score>=1500)&&!(level===2&&score>=4500);   // anti-farming and no respawns once the level is won
-    if(allowed&&(gotClam||sinceResp>=every)){
-      sinceResp=0;
-      freshCells=[];{const me=idx(otter.c,otter.r);for(let i=0;i<grid.length;i++)if(!grid[i]&&!logs.has(i)&&i!==me)freshCells.push(i)}   // cells that are empty right now
-      const keep=grid.findIndex(g=>g&&g.clam);
-      markNew=true;
-      refillEmpty();
-      if(keep>=0)settleClam(keep,false);
-      markNew=false;
-    }
+    if(gotClam&&clams-levelStart<3)nextClam(allowed);                  // next clam on a designated crossroads, with the respawn checked
+    else if(allowed&&sinceResp>=every){sinceResp=0;refillSmart(emptyCells(),grid.findIndex(g=>g&&g.clam))}
     if(gotClam)sinceResp=0;           // picking up a clam always restarts the tile count
+    // rocks: from level 3 each clam has a 30% chance of a rock (on a crossroads). After one spawns, the next waits for the next level threshold (6, 9, 12);
+    // from level 12 on the wait is 10 clams instead.
+    if(gotClam&&level>=3&&clams-levelStart<=2&&!grid.some(g=>g&&g.rock)&&(level>=12?clams-rockLastClams>=10:level>=rockLock)&&Math.random()<.3&&placeRock()){
+      if(level>=12)rockLastClams=clams;else rockLock=(Math.floor(level/3)+1)*3;
+    }
   }
-  markNew=!zen;placeClam();
+  placeClam();   // Zen only
   if(zen&&gotClam&&score>1000&&clams>10&&Math.random()<.02&&!grid.some(g=>g&&g.rock)){   // Zen only: 2% chance of a Dreaming Pebble (replaces any tile more than 2 moves from Otto)
     const far=[];
     for(let i=0;i<grid.length;i++){const c=i%COLS,r=(i-c)/COLS,dc=Math.abs(c-otter.c),dr=Math.abs(r-otter.r);
       if(Math.min(dc,COLS-dc)+Math.min(dr,ROWS-dr)>2&&!logs.has(i)&&!(grid[i]&&(grid[i].clam||grid[i].heart||grid[i].q)))far.push(i)}
     if(far.length){const rt=rockTile('Dreaming Pebble');rt.t0=t;grid[far[Math.floor(Math.random()*far.length)]]=rt}
   }
-  if(!zen&&level%3===0&&gotClam&&clams-levelStart<=2&&!rockSpawned&&!grid.some(g=>g&&g.rock)&&placeRock(freshCells))rockSpawned=true;   // one rock per level, right after a clam; if there was no safe spot, the next clam tries again
   markNew=false;
   if(tl.q){tl.q=false;tl.gone=true;
     if(Math.random()<.5){slowT=10;SFX.flute();burst(cxOf(nc),cyOf(nr),'#ffd95e',16)}   // 50%: 10 s at half speed (snail effect)
@@ -870,7 +887,7 @@ function arrive(){
 // shuffle every cell except Otto's and the wood; the clam must stay reachable afterwards
 function shuffleBoard(){
   const o=otter,keep=idx(o.c,o.r),cells=[];
-  for(let i=0;i<grid.length;i++)if(i!==keep&&!logs.has(i))cells.push(i);
+  for(let i=0;i<grid.length;i++)if(i!==keep&&!logs.has(i)&&!desig.includes(i))cells.push(i);
   const items=cells.map(i=>grid[i]);
   const apply=()=>{
     for(let i=items.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[items[i],items[j]]=[items[j],items[i]]}
@@ -878,10 +895,7 @@ function shuffleBoard(){
     const cI=grid.findIndex(g=>g&&g.clam);
     return cI<0||clamOK(cI,true);        // the player may turn Otto during the stun, so any heading counts
   };
-  for(let n=0;n<400;n++)if(apply()){const c=grid.findIndex(g=>g&&g.clam);if(c>=0)settleClam(c,true);return}
-  const cI=grid.findIndex(g=>g&&g.clam);   // (practically unreachable) no fair layout found: respawn the clam fairly
-  if(cI>=0)grid[cI]=null;
-  placeClam(false,true);
+  for(let n=0;n<400;n++)if(apply())return;   // (if no fair layout turns up, the last shuffle simply stays)
 }
 let hitLog=false;
 function crash(byLog){
@@ -1623,14 +1637,14 @@ return{ROCKS,R_NAMES,RARC,drawRock,outline,rng}})();
 try{
   if(!localStorage.getItem('ottoSeen')){
     const played=['otterBestScore','otterDark','otterMute','otterMusicMute','ottoRocks'].some(k=>localStorage.getItem(k)!==null);
-    if(!played){localStorage.removeItem('ottoRocks');localStorage.removeItem('ottoRockEquip')}   // brand-new phone: make sure every rock is blank
+    if(!played){localStorage.removeItem('ottoRocks');localStorage.removeItem('ottoRockEquip');localStorage.setItem('ottoFirstRock','1')}   // a new phone's first level gets a common rock;   // brand-new phone: make sure every rock is blank
     localStorage.setItem('ottoSeen','1');
   }
   if(/[?&]resetrocks\b/.test(location.search)){localStorage.removeItem('ottoRocks');localStorage.removeItem('ottoRockEquip')}   // manual reset: open the game with ?resetrocks
 }catch(e){}
 let rockCounts={};try{rockCounts=JSON.parse(localStorage.getItem('ottoRocks')||'{}')||{}}catch(e){}
 const saveRocks=()=>{try{localStorage.setItem('ottoRocks',JSON.stringify(rockCounts))}catch(e){}};
-window.addRock=name=>{rockCounts[name]=(rockCounts[name]||0)+1;saveRocks()};   // call when a rock is picked up
+window.addRock=name=>{rockCounts[name]=(rockCounts[name]||0)+1;saveRocks();try{localStorage.removeItem('ottoFirstRock')}catch(e){}};   // call when a rock is picked up
 let colTab=1;
 try{const e=localStorage.getItem('ottoRockEquip');if(e&&rockCounts[e]>0)equipRock=e}catch(e){}
 function setEquip(n){equipRock=n;try{n?localStorage.setItem('ottoRockEquip',n):localStorage.removeItem('ottoRockEquip')}catch(e){}}
@@ -1655,7 +1669,7 @@ function paintCollection(){
       g.fillStyle='rgba(60,80,80,.38)';g.fill();
     }
     d.appendChild(c);
-    const nm=document.createElement('b');nm.textContent=n>0?s.n:'';d.appendChild(nm);
+    const nm=document.createElement('b');nm.textContent=n>0?s.n:s.zenOnly?'(Only in Zen Mode)':'';d.appendChild(nm);
     const ct=document.createElement('em');ct.textContent=n>0?'×'+n:'';d.appendChild(ct);
     if(n>0)d.addEventListener('click',()=>{setEquip(equipRock===s.n?null:s.n);paintCollection()});
     grid.appendChild(d);
