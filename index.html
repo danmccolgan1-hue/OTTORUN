@@ -69,6 +69,13 @@ body.dark #pause,body.dark #ff,body.dark #snail,body.dark #mute,body.dark #mmute
 
 /* collection screen */
 #colsel{padding-top:104px}
+#tutchk{display:flex;align-items:center;justify-content:center;gap:8px;margin:12px 0 0;font-weight:700;font-size:15px;cursor:pointer}
+#tutchk input{width:20px;height:20px;accent-color:#4f94bd}
+#tut{position:fixed;inset:0;z-index:7;touch-action:manipulation}
+#tutspot{position:absolute;box-shadow:0 0 0 3000px rgba(15,35,35,.72);border:3px solid #ffd95e;transition:all .25s}
+#tutbox{position:absolute;left:50%;transform:translateX(-50%);width:min(320px,86vw);background:#fdf3d8;color:#2f4a46;border-radius:20px;padding:14px 18px;text-align:center;box-shadow:0 5px 0 rgba(47,74,70,.3)}
+#tutbox p{margin:0 0 6px;font-weight:700;font-size:17px;line-height:1.3}
+#tutbox small{opacity:.7;font-size:12px}
 #patchcard{max-width:380px;max-height:100%;display:flex;flex-direction:column;gap:10px;text-align:left}
 #patchcard h1{margin:0;text-align:center;font-size:26px}
 #patchcard ul{text-align:left;margin:0;padding-left:20px;overflow-y:auto;min-height:0;flex:1 1 auto;font-size:14px;line-height:1.4}
@@ -146,6 +153,7 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 <button id="ff" class="hide" aria-label="Fast forward: double speed">&#9654;&#9654;</button>
 <button id="snail" class="hide" aria-label="Snail power-up: 10 seconds at half speed"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="29" cy="21" r="12"/><path d="M3 39c0-5 4-8 9-8h31c3 0 5 2 5 4.500S46 40 43 40H7c-2.500 0-4-.5-4-1z"/><path d="M8 33c-3-5-2-11 1-14l2.500 1.500C9.500 23 9.500 27 12 31z"/><circle cx="9" cy="17.500" r="2.200"/><path d="M13 31c0-5 1-9 4-12l2 2c-2 2.500-2.500 6-2.500 10z"/><circle cx="18" cy="17.500" r="2.200"/></svg></button>
 <button id="letgo" class="hide">Go!</button>
+<div id="tut" class="hide"><div id="tutspot"></div><div id="tutbox"><p id="tuttxt"></p><small id="tutnext"></small></div></div>
 <div id="pausescreen" class="hide"><div id="pcard">
 <h1>Paused</h1>
 <p>Otto the otter will wait right here.</p>
@@ -161,7 +169,7 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 <button id="infobtn" class="alt">How to Play</button>
 <button id="colbtn" class="alt">Rock Collection</button>
 <button id="patchbtn" class="alt">Patch Notes</button>
-<button id="testbtn" class="alt">Test Mode</button><p id="mbest"></p><p id="ver">Version: 0.97</p>
+<button id="testbtn" class="alt">Test Mode</button><p id="mbest"></p><p id="ver">Version: 0.99</p>
 </div></div>
 <div id="info" class="hide"><div id="icard">
 <h1>How to Play</h1>
@@ -183,6 +191,7 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 <p><b>Floating wood</b> A barrier that costs Otto the otter a heart if he bonks into it.</p></div>
 <div class="row"><canvas class="ico" id="i_mystery" width="128" height="128"></canvas>
 <p><b>Mystery tile</b></p></div>
+<label id="tutchk"><input type="checkbox" id="tutbox2"> Tutorial On</label>
 <button id="infoback" class="alt">Back</button>
 </div></div>
 <div id="colsel" class="hide"><div id="ccard">
@@ -203,6 +212,9 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 <li>Tap a rock in your collection to have Otto hold it while swimming, on the board and on the menu.</li>
 <li>Renamed the Collection screen and menu button to Rock Collection.</li>
 <li>Added this Patch Notes window.</li>
+<li>Longer countdown: 10 seconds on levels 1 to 3 and 7 seconds after that.</li>
+<li>Added a first-time tutorial on level 1, with a Tutorial On checkbox in How to Play.</li>
+<li>Rocks you already collected are kept when you update.</li>
 </ul>
 <button id="patchback" class="alt">Back</button>
 </div></div>
@@ -720,6 +732,36 @@ function placeClam(first,free){
   const last=[];for(let i=0;i<grid.length;i++)if(ok(i))last.push(i);   // 4) never expected: wood everywhere
   if(last.length)put(pick(last));
 }
+// ---- first-run tutorial (level 1, once): tap through 4 hints while the countdown is held ----
+let tutOn=false,tutStep=0;
+let tutRunDone=false;   // the tutorial shows once per new game, not on every retry
+const tutWanted=()=>{try{const v=localStorage.getItem('ottoTutOn');return v===null?true:v==='1'}catch(e){return true}};   // default On
+const setTutWanted=v=>{try{localStorage.setItem('ottoTutOn',v?'1':'0')}catch(e){}};
+const TUT=[
+  {t:'You can rotate Otto during the countdown. Tap him to turn him.',sp:'otto'},
+  {t:'Otto moves head first, so point him where you want to go.',sp:'otto'},
+  {t:'Corner and straight tiles can be rotated too. Tap a tile to turn it.',sp:'board'},
+  {t:'The goal of each level is to reach 3 clams.',sp:'clam'}];
+function tutShow(){
+  const st=TUT[tutStep],sp=$('tutspot'),b=$('tutbox');
+  let x=W/2,y=H/2,w=0,h=0,rad=0;
+  if(st.sp==='otto'){x=cxOf(otter.c);y=cyOf(otter.r);w=h=cell*1.15;rad=cell}
+  else if(st.sp==='board'){x=ox+COLS*cell/2;y=oy+ROWS*cell/2;w=COLS*cell+8;h=ROWS*cell+8;rad=24}
+  else{const ci=grid.findIndex(g=>g&&g.clam);if(ci>=0){x=cxOf(ci%COLS);y=cyOf(Math.floor(ci/COLS));w=h=cell*1.1;rad=cell}}
+  sp.style.cssText='left:'+(x-w/2)+'px;top:'+(y-h/2)+'px;width:'+w+'px;height:'+h+'px;border-radius:'+rad+'px';
+  $('tuttxt').textContent=st.t;$('tutnext').textContent=tutStep<TUT.length-1?'Tap to continue':'Tap to start';
+  b.style.top=(y>H*.5?'170px':'auto');b.style.bottom=(y>H*.5?'auto':'90px');
+}
+function tutStart(){
+  if(zen||level!==1||tutRunDone||!tutWanted()){tutOn=false;$('tut').classList.add('hide');return}
+  tutOn=true;tutStep=0;$('tut').classList.remove('hide');tutShow();
+}
+function tutEnd(done){
+  tutOn=false;$('tut').classList.add('hide');
+  if(done){tutRunDone=true;
+    try{if(localStorage.getItem('ottoTutDone')!=='1'){localStorage.setItem('ottoTutDone','1');setTutWanted(false)}}catch(e){}   // after the very first tutorial it switches itself Off; after that only the checkbox changes it
+  }
+}
 function spawn(){
   const c=Math.floor(COLS/2),r=Math.floor(ROWS/2);
   grid=new Array(COLS*ROWS).fill(null);logs.clear();rockSpawned=false;
@@ -744,11 +786,13 @@ function spawn(){
     (chosen||others.slice(0,nLogs)).forEach(i=>{grid[i]=null;logs.add(i)});
   }
   sinceResp=0;
-  otter={c,r,e:0,p:0,a:0,wait:zen?Infinity:5};   // zen: the otter waits until you press Go
+  otter={c,r,e:0,p:0,a:0,wait:zen?Infinity:level<=3?10:7};   // countdown: 10 s on levels 1-3, 7 s after; zen: the otter waits until you press Go
   placeClam(level===1,true);
   if(zen)$('letgo').classList.remove('hide');
+  tutStart();
 }
 function init(){
+  tutRunDone=false;
   const c0=(W-16)/COLS;
   ROWS=8;   // fixed 8 x 5 board on every device
   grid=[];layout();
@@ -967,7 +1011,7 @@ function update(dt){
    b.style.background=act?'conic-gradient(#ffd95e '+(slowT/10*360)+'deg, rgba(253,243,216,.95) 0)':'';
    b.style.display=(zen||!moved)?'none':'';}   // hidden until Otto starts moving
   if(!running)return;
-  if(o.wait>0){o.wait-=dt;return}
+  if(o.wait>0){if(!tutOn)o.wait-=dt;return}
   moved=true;
   if(slowT>0)slowT=Math.max(0,slowT-dt);
   o.p+=speed*(o.boost>0?2:1)*(ff?2:1)*(slowT>0?.5:1)*dt;
@@ -1298,6 +1342,7 @@ function drawCount(){
 try{document.fonts&&document.fonts.load('20px Chango')}catch(e){}
 function frame(now){
   const dt=Math.min(.05,(now-(frame.l||now))/1000);frame.l=now;
+  if(!running&&tutOn)tutEnd(false);
   if(!paused)update(dt);
   drawMenuOtto(dt);
   cx.save();
@@ -1321,7 +1366,7 @@ function frame(now){
 
 // ---- input: tap a current tile to rotate it ----
 cv.addEventListener('pointerdown',e=>{
-  if(!running)return;
+  if(!running||tutOn)return;
   const c=Math.floor((e.clientX-ox)/cell),r=Math.floor((e.clientY-oy)/cell);
   if(!inb(c,r))return;
   const g=grid[idx(c,r)];
@@ -1704,10 +1749,12 @@ function drawInfo(){
   inIcon('i_wood',()=>drawLog(0,0));
 }
 $('infobtn').addEventListener('click',()=>{
+  $('tutbox2').checked=tutWanted();
   $('menu').classList.add('hide');$('info').classList.remove('hide');$('info').scrollTop=0;
   $('mute').classList.add('hide');$('mmute').classList.add('hide');
   drawInfo();
 });
+$('tutbox2').addEventListener('change',e=>setTutWanted(e.target.checked));
 $('infoback').addEventListener('click',()=>{$('info').classList.add('hide');$('menu').classList.remove('hide');$('mute').classList.remove('hide');$('mmute').classList.remove('hide')});
 function paintSetup(){             // the screen itself previews the chosen water colour
   document.querySelectorAll('#bgopts .sw').forEach((s,i)=>{s.style.background='linear-gradient(rgb('+PAL[i][0].join(',')+'),rgb('+PAL[i][1].join(',')+'))'});   // swatches follow dark mode
@@ -1733,6 +1780,12 @@ $('setupback').addEventListener('click',()=>{
 });
 $('tomenu').addEventListener('click',toMenu);
 $('menu2').addEventListener('click',toMenu);
+$('tut').addEventListener('pointerdown',e=>{
+  e.preventDefault();
+  if(tutStep===0&&running&&Math.floor((e.clientX-ox)/cell)===otter.c&&Math.floor((e.clientY-oy)/cell)===otter.r)otter.e=(otter.e+1)%4;   // tapping Otto in step 1 really turns him
+  tutStep++;
+  if(tutStep>=TUT.length)tutEnd(true);else tutShow();
+});
 $('letgo').addEventListener('click',()=>{
   if(running&&otter&&otter.wait>0){otter.wait=0;$('letgo').classList.add('hide')}
 });
