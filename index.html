@@ -4,15 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Otto Run</title>
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" type="image/png" href="icon-192.png">
-<meta name="theme-color" content="#6fbcb8">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Otto Run">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
 <style>
 :root{--ink:#2f4a46;--cream:#fdf3d8;--clay:#e9866b;--panel:rgba(253,243,216,.95);box-sizing:border-box}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#2f4a46;--panel:rgba(253,243,216,.95)}}
@@ -31,6 +22,17 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
 #mcard button{display:block;margin:14px auto 0;width:240px;padding:12px 20px}
 #mcard button small{display:block;font-size:13px;font-weight:400;margin-top:2px}
 .alt{background:#4f93b8;box-shadow:0 4px 0 #386f8f}
+#dcbtn.done{white-space:nowrap;background:#4aa87a;box-shadow:0 4px 0 #2f7d57}
+#colbtn{position:relative}
+#newrock{position:absolute;top:-7px;right:-4px;background:#e9503a;color:#fff;font-size:11px;font-weight:700;letter-spacing:.06em;padding:3px 8px;border-radius:999px;box-shadow:0 2px 0 rgba(0,0,0,.25);animation:newpulse 1.4s ease-in-out infinite}
+@keyframes newpulse{50%{transform:scale(1.12)}}
+#achpop{position:fixed;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(15,35,35,.62)}
+#achcard{background:var(--panel);color:var(--ink);border-radius:28px;padding:22px 24px;max-width:320px;width:100%;text-align:center;box-shadow:0 6px 0 rgba(47,74,70,.3);display:flex;flex-direction:column;align-items:center;gap:6px}
+#achcard .achhead{font-size:13px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;opacity:.75}
+#achcv{position:static;width:150px;height:150px;border-radius:18px;background:linear-gradient(#8fd3c6,#4fa6a6)}
+#achname{margin:6px 0 0;font-size:24px}
+#achrar{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+#achwhy{margin:2px 0 8px;font-size:14px;line-height:1.4}
 .alt:active{box-shadow:0 1px 0 #386f8f}
 #menu2,#tomenu{font-size:17px;padding:10px 26px}
 #letgo{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);left:calc(50% - 48px);z-index:5;width:96px;height:44px;margin:0;padding:0;font-size:22px}
@@ -118,7 +120,10 @@ body.dark #testsel,body.dark #colsel,body.dark #patchsel{background:#1c2f5e}
 #icard>button{display:block;margin:14px auto 0;width:200px}
 .ico{position:static;flex:none;width:64px;height:64px;border-radius:14px}
 #mcv{pointer-events:none}
-#mcard{position:relative;z-index:1;max-width:280px}
+#mcard{position:relative;z-index:1;max-width:340px}
+.mrow{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px}
+#mcard .mrow button{margin:0;width:200px;flex:none}
+.mrow canvas{position:static;width:40px;height:40px;flex:none;pointer-events:none}
 #mtitle{font-size:34px;letter-spacing:1px}
 #mtitle span{display:inline-block;animation:wave 1.6s ease-in-out infinite;animation-delay:calc(var(--i)*-.14s)}
 @keyframes wave{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
@@ -166,10 +171,11 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 <p>Steer Otto the otter with arrows and gather clams.</p>
 <button id="newgame">New Game</button>
 <button id="zenbtn" class="alt">Zen Mode</button>
+<button id="dcbtn" class="alt">Daily Challenge</button>
 <button id="infobtn" class="alt">How to Play</button>
 <button id="colbtn" class="alt">Rock Collection</button>
 <button id="patchbtn" class="alt">Patch Notes</button>
-<button id="testbtn" class="alt">Test Mode</button><p id="mbest"></p><p id="ver">Version: 1.04</p>
+<button id="testbtn" class="alt">Test Mode</button><p id="mbest" style="line-height:1.5"></p><p id="ver">Version: 1.22</p>
 </div></div>
 <div id="info" class="hide"><div id="icard">
 <h1>How to Play</h1>
@@ -177,8 +183,6 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 <p><b>Otto the otter</b> swims on his own, following the arrows you turn for him.</p></div>
 <div class="row"><canvas class="ico" id="i_tile" width="128" height="128"></canvas>
 <p><b>Current tile</b> Tap it to rotate it, and it disappears once Otto the otter has swum through it.</p></div>
-<div class="row"><canvas class="ico" id="i_boost" width="128" height="128"></canvas>
-<p><b>Speed boost</b> Yellow arrows that make Otto the otter swim twice as fast for 3 tiles.</p></div>
 <div class="row"><canvas class="ico" id="i_gold" width="128" height="128"></canvas>
 <p><b>Golden tile</b> A tile that stays on the board after Otto the otter crosses it.</p></div>
 <div class="row"><canvas class="ico" id="i_empty" width="128" height="128"></canvas>
@@ -191,6 +195,10 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 <p><b>Floating wood</b> A barrier that costs Otto the otter a heart if he bonks into it.</p></div>
 <div class="row"><canvas class="ico" id="i_mystery" width="128" height="128"></canvas>
 <p><b>Mystery tile</b></p></div>
+<div class="row"><canvas class="ico" id="i_volc" width="128" height="128"></canvas>
+<p><b>Volcano</b> Rumbles, then erupts and destroys the 8 tiles around it. Red flashing outlines warn you first, and the tiles grow back.</p></div>
+<div class="row"><canvas class="ico" id="i_wave" width="128" height="128"></canvas>
+<p><b>Wave</b> A warning shows at the side, then a wave washes away a whole row of tiles, and Otto if he is in it. The tiles come back.</p></div>
 <label id="tutchk"><input type="checkbox" id="tutbox2"> Tutorial On</label>
 <button id="infoback" class="alt">Back</button>
 </div></div>
@@ -202,26 +210,19 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 <div id="colgrid"></div>
 <button id="colback" class="alt">Back</button>
 </div></div>
+<div id="achpop" class="hide"><div id="achcard"><div class="achhead">Achievement unlocked</div><canvas id="achcv" width="300" height="300"></canvas><h1 id="achname"></h1><div id="achrar"></div><p id="achwhy"></p><button id="achok">Awesome!</button></div></div>
 <div id="patchsel" class="hide"><div id="patchcard">
 <h1>Patch Notes</h1>
 <ul>
-<li>Added a Rock Collection: 54 collectible rocks in five rarities, with a screen to browse them.</li>
-<li>Rocks now appear on levels 3, 6, 9 and up, always with a safe route to them and on to the next clam.</li>
-<li>Rocks shake on the board, make a rocky pickup sound and show up on the game-over screens.</li>
-<li>Added the Dreaming Pebble, an epic rock found only in Zen Mode.</li>
-<li>Tap a rock in your collection to have Otto hold it while swimming, on the board and on the menu.</li>
-<li>Renamed the Collection screen and menu button to Rock Collection.</li>
-<li>Added this Patch Notes window.</li>
-<li>New level generation: each level has 1 clam plus two crossroads where the next two clams will appear, and a route to all three is checked at the start.</li>
-<li>Tiles are no longer rearranged to save you from a dead end; only empty water gets new tiles.</li>
-<li>Otto now speeds up by 3% per tile instead of 5%.</li>
-<li>Rocks now have a 30% chance per clam from level 3, appear on crossroads, and come once per 3-level stretch (every 10 clams from level 12).</li>
-<li>The clam and its two future clam crossroads are always more than 3 moves apart.</li>
-<li>Every level now starts with no empty water tiles.</li>
-<li>While you have no rocks, level 1 holds a common rock and the tutorial explains it.</li>
-<li>Longer countdown: 10 seconds on levels 1 to 3 and 7 seconds after that.</li>
-<li>Added a first-time tutorial on level 1, with a Tutorial On checkbox in How to Play.</li>
-<li>Rocks you already collected are kept when you update.</li>
+<li><b>v1.19 · Oct 27</b> — New levels: waves (level 8) and volcanoes (level 9), random from level 11. Speed-up tiles removed, and the mystery tile can now reset Otto's speed.</li>
+<li><b>v1.14 · Oct 26</b> — Main Menu shows your all-time and today's High Score.</li>
+<li><b>v1.10 · Oct 26</b> — Daily Challenge can be replayed with Try again.</li>
+<li><b>v1.09 · Oct 26</b> — Daily Challenge rocks to earn, plus a NEW marker on Rock Collection.</li>
+<li><b>v1.05 · Oct 26</b> — New Daily Challenge mode: one shared puzzle a day, with Share Score.</li>
+<li><b>v1.04 · Oct 26</b> — New level generation: planned clam spots, no more tile reshuffling, and rocks only on crossroads.</li>
+<li><b>v1.03 · Oct 24</b> — Otto speeds up 3% per tile, and the countdown is longer.</li>
+<li><b>v1.02 · Oct 24</b> — First-time tutorial added.</li>
+<li><b>v1.00 · Oct 23</b> — Rock Collection added, with rocks to find and equip.</li>
 </ul>
 <button id="patchback" class="alt">Back</button>
 </div></div>
@@ -258,7 +259,9 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 <p id="best"></p>
 <div id="prk" class="hide"></div>
 <button id="buy" class="hide">Continue</button>
+<button id="share" class="hide alt">Share Score</button>
 <button id="go">Start swimming</button>
+<button id="dcagain" class="hide">Try again</button>
 <button id="menu2" class="alt">Main menu</button>
 </div></div>
 <script>
@@ -287,7 +290,9 @@ const waterIdx=()=>zen?zenBg:(level-1)%3;      // which water colour is showing
 const tuneIdx=()=>zen?zenMusic:(level-1)%3;    // which tune is playing (Zen Mode lets you pick both)
 const startMul=()=>level>5?1.5:1;                // level 6+ starts at 1.5x
 const capMul=()=>level===1?1:Math.min(2,1+.25*(level-1));   // L1 none, L2 1.25x, L3 1.5x, L4 1.75x, L5+ 2x
-const logs=new Set();   // cells blocked by floating logs
+let volc=null,wave=null;const volcDead=new Map();
+const logs=new Set(),noGo=new Set();   // noGo: the 8 cells around a volcano. They never hold the clam or a future clam spot, and no route check may use them.
+const blk=i=>logs.has(i)||noGo.has(i);   // cells blocked by floating logs
 
 // ---- sound: everything is synthesized with Web Audio, no files needed ----
 let AC=null,NB=null,OUT=null,MG=null,muted=false,musicMuted=false;
@@ -552,7 +557,7 @@ function newTile(plain){          // plain: only a normal (or golden) tile, neve
   const ty=hr?'x':q<.25?'s':q<.9?'c':'x';
   // golden tiles: crossings from the start, straights and corners from level 7. Each kind has the same overall chance (1 in 100 tiles). Max one on the board.
   const gp=ty==='x'?.1:level>=7?(ty==='s'?.04:.0154):0;
-  return{t:ty,rot,a:rot*PI2,s:0,clam:false,heart:hr,gold:!hr&&!zen&&gp>0&&!grid.some(g=>g&&g.gold)&&Math.random()<gp,boost:!hr&&!zen&&Math.random()<[.05,.1,.15][Math.min(level,3)-1]+(level>=7?.1:0)};
+  return{t:ty,rot,a:rot*PI2,s:0,clam:false,heart:hr,gold:!hr&&!zen&&gp>0&&!grid.some(g=>g&&g.gold)&&Math.random()<gp,boost:false};
 }
 function fill(keep,force){
   for(let i=0;i<COLS*ROWS;i++){
@@ -580,7 +585,7 @@ function clamReachable(target,free){
     const nc=(c+DX[h]+COLS)%COLS,nr=(r+DY[h]+ROWS)%ROWS,ni=idx(nc,nr);
     if(ni===target)return true;
     const tl=grid[ni];
-    if(!tl||ni===start||logs.has(ni))continue;
+    if(!tl||ni===start||blk(ni))continue;
     const outs=outsOf(tl,h);
     for(const nh of outs){const k=ni*4+nh;if(!seen.has(k)){seen.add(k);q.push([ni,nh])}}
   }
@@ -599,7 +604,7 @@ function simpleReach(target,fr,budget=40000,via){   // via: optional cell the ro
     const c=cell%COLS,r=(cell-c)/COLS,ni=idx((c+DX[h]+COLS)%COLS,(r+DY[h]+ROWS)%ROWS);
     if(ni===target)return via===undefined||f;
     const tl=grid[ni];
-    if(!tl||used[ni]||logs.has(ni))return false;
+    if(!tl||used[ni]||blk(ni))return false;
     used[ni]=1;
     const outs=outsOf(tl,h),nf=f||ni===via;
     for(const nh of outs)if(go(ni,nh,nf)){used[ni]=0;return true}
@@ -624,7 +629,7 @@ function routeOK(targets,fr,budget=30000){
   const go=(cell,h,k)=>{
     if(--budget<0)return false;
     const c=cell%COLS,r=(cell-c)/COLS,ni=idx((c+DX[h]+COLS)%COLS,(r+DY[h]+ROWS)%ROWS);
-    if(used[ni]||logs.has(ni))return false;
+    if(used[ni]||blk(ni))return false;
     const tl=grid[ni];if(!tl)return false;
     let nk=k;
     if(ni===targets[k]){nk=k+1;if(nk===targets.length)return true}
@@ -643,9 +648,9 @@ function pickRock(lv){
   const T=lv>=12?[0,0,50,40,10]:lv>=9?[0,25,50,20,5]:lv>=6?[50,35,14,1,0]:[80,19,1,0,0];   // levels 3-5 use the level 3 odds, 6-8 the level 6 odds, 9-11 the level 9 odds, 12+ the level 12 odds
   let roll=Math.random()*100,rar=1;
   for(let k=0;k<5;k++){if(roll<T[k]){rar=k+1;break}roll-=T[k];rar=k+1}
-  const of=r=>Rocks.ROCKS.filter(x=>x.r===r);
+  const of=r=>Rocks.ROCKS.filter(x=>x.r===r&&!x.zenOnly&&!x.dcOnly);   // Zen and Daily Challenge rocks never spawn on the board
   if(rar===5&&of(5).every(x=>rockCounts[x.n]>0))rar=4;       // the legendary can only be found once: roll an epic instead
-  const a=of(rar).filter(x=>!x.zenOnly);return a[Math.floor(Math.random()*a.length)];
+  const a=of(rar);return a[Math.floor(Math.random()*a.length)];
 }
 // a rock replaces one crossroads tile (never the clam, a future clam spot, Otto's tile, wood, hearts, mystery or golden tiles)
 const crossTile=()=>({t:'x',rot:0,a:0,s:0,clam:false,heart:false,q:false,gold:false,boost:false});
@@ -664,7 +669,7 @@ function showRockFound(spec){
 // respawn: every EMPTY cell (open water) gets a new tile; existing tiles, wood and Otto's cell are untouched.
 // Future clam crossroads always come back as crossroads. If a clam is out there and Otto can't reach it, the NEW tiles are re-rolled (up to 30 times).
 // If it still can't be reached (wood or old tiles in the way) nothing else is changed.
-const emptyCells=()=>{const me=idx(otter.c,otter.r),a=[];for(let i=0;i<grid.length;i++)if(i!==me&&!logs.has(i)&&!grid[i])a.push(i);return a};
+const emptyCells=()=>{const me=idx(otter.c,otter.r),a=[];for(let i=0;i<grid.length;i++)if(i!==me&&!logs.has(i)&&!grid[i]&&!volcDead.has(i))a.push(i);return a};
 function refillSmart(empties,target){
   const o=otter,ahead=idx((o.c+DX[o.e]+COLS)%COLS,(o.r+DY[o.e]+ROWS)%ROWS);
   const cells=empties.filter(i=>i!==target),q0=qDone;
@@ -717,13 +722,33 @@ function tutShow(){
   let x=W/2,y=H/2,w=0,h=0,rad=0;
   if(st.sp==='otto'){x=cxOf(otter.c);y=cyOf(otter.r);w=h=cell*1.15;rad=cell}
   else if(st.sp==='board'){x=ox+COLS*cell/2;y=oy+ROWS*cell/2;w=COLS*cell+8;h=ROWS*cell+8;rad=24}
+  else if(st.sp==='buoy'){const bi=dcPuz.path[dcPuz.N-1];x=cxOf(bi%COLS);y=cyOf(Math.floor(bi/COLS));w=h=cell*1.1;rad=cell}
+  else if(st.sp==='hud'){const q=$('score').getBoundingClientRect();x=q.left+q.width/2;y=q.top+q.height/2;w=q.width+16;h=q.height+12;rad=22}
   else if(st.sp==='rock'){const ri=grid.findIndex(g=>g&&g.rock);if(ri>=0){x=cxOf(ri%COLS);y=cyOf(Math.floor(ri/COLS));w=h=cell*1.1;rad=cell}}
+  else if(st.sp==='volc'&&volc){x=cxOf(volc.c);y=cyOf(volc.r);w=h=cell*3+8;rad=24}
+  else if(st.sp==='wave'&&wave){x=ox+COLS*cell/2;y=cyOf(wave.row);w=COLS*cell+8;h=cell+8;rad=24}
   else{const ci=grid.findIndex(g=>g&&g.clam);if(ci>=0){x=cxOf(ci%COLS);y=cyOf(Math.floor(ci/COLS));w=h=cell*1.1;rad=cell}}
   sp.style.cssText='left:'+(x-w/2)+'px;top:'+(y-h/2)+'px;width:'+w+'px;height:'+h+'px;border-radius:'+rad+'px';
   $('tuttxt').textContent=st.t;$('tutnext').textContent=tutStep<TUT.length-1?'Tap to continue':'Tap to start';
   b.style.top=(y>H*.5?'170px':'auto');b.style.bottom=(y>H*.5?'auto':'90px');
 }
+const DCTUT=[
+  {t:'Welcome to the Daily Challenge! Everyone gets the same puzzle today, so you can compare solutions.',sp:'none'},
+  {t:'Your goal is to cross every tile. This counter shows the tiles crossed out of the total.',sp:'hud'},
+  {t:'Tap Otto to choose his direction, and tap tiles to turn them. He always swims head first.',sp:'otto'},
+  {t:'Finish on the checkered buoy, and only after every other tile is used. You have 60 seconds to plan.',sp:'buoy'},
+  {t:'If Otto swims into open water, he cries. Afterwards you can view the solution.',sp:'none'}];
+function tutStartDC(){
+  let seen=false;try{seen=localStorage.getItem('ottoDCTutDone')==='1'}catch(e){}
+  if(seen||dcReplay){tutOn=false;$('tut').classList.add('hide');return}
+  TUT=DCTUT;tutOn=true;tutStep=0;$('tut').classList.remove('hide');tutShow();
+}
+const HAZ={volc:'That is a volcano! It rumbles, then erupts and destroys all 8 tiles around it. Red flashing outlines warn you before the blast, and the tiles grow back afterwards.',wave:'Watch out for waves! A warning shows at the side of the screen, then a big wave washes away one whole row of tiles, and Otto too if he is in it. The tiles come back afterwards.'};
+let tutHaz='';
 function tutStart(){
+  tutHaz='';
+  {const hk=volc?'volc':wave?'wave':'';   // the first time a volcano or wave shows up, explain it once
+   if(hk&&!lsGet('ottoTut_'+hk,0)){TUT=[{t:HAZ[hk],sp:hk}];tutHaz=hk;tutOn=true;tutStep=0;$('tut').classList.remove('hide');tutShow();return}}
   if(zen||level!==1||tutRunDone||!tutWanted()){tutOn=false;$('tut').classList.add('hide');return}
   TUT=TUT0.slice();
   const rockStep=noRocks()&&grid.some(g=>g&&g.rock);   // the rock explanation shows whenever the player has no rocks yet
@@ -732,20 +757,178 @@ function tutStart(){
 }
 function tutEnd(done){
   tutOn=false;$('tut').classList.add('hide');
+  if(tutHaz){if(done)lsSet('ottoTut_'+tutHaz,1);tutHaz='';return}
+  if(dc){if(done)try{localStorage.setItem('ottoDCTutDone','1')}catch(e){}return}
   if(done){tutRunDone=true;
     try{if(localStorage.getItem('ottoTutDone')!=='1'){localStorage.setItem('ottoTutDone','1');setTutWanted(false)}}catch(e){}   // after the very first tutorial it switches itself Off; after that only the checkbox changes it
   }
 }
+// ---- Daily Challenge (DC): the same puzzle for everyone each day. Use every tile. ----
+let dc=false,dcReplay=false,dcX=0,dcY=0,dcPuz=null,dcEarly=false,shareText='';
+const dcDate=()=>{try{return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York'}).format(new Date())}catch(e){return new Date().toISOString().slice(0,10)}};   // the day changes at midnight Eastern
+const hashStr=t=>{let h=2166136261;for(const ch of t){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0};
+const mulberry=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};   // seeded random: same numbers on every phone
+// Build the day's puzzle. It starts from a route that visits every tile exactly once (so it is solvable by construction),
+// then builds the tiles from that route: a bend needs a corner, a straight run is a straight or a crossroads. Rotations are scrambled.
+function dcBuild(day){
+  const NC=COLS*8,start=idx(2,4);
+  const nb=(i,d)=>{const c=i%COLS,r=(i-c)/COLS;return idx((c+DX[d]+COLS)%COLS,(r+DY[d]+8)%8)};
+  for(let attempt=0;attempt<300;attempt++){
+    const rng=mulberry(hashStr('OttoRunDC|'+day+'|'+attempt));
+    const nEmpty=Math.floor(rng()*6);                       // 0 to 5 empty cells
+    const cells=[];for(let i=0;i<NC;i++)if(i!==start)cells.push(i);
+    for(let i=cells.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[cells[i],cells[j]]=[cells[j],cells[i]]}
+    const empty=new Set(cells.slice(0,nEmpty)),N=NC-nEmpty;
+    const used=new Uint8Array(NC);used[start]=1;const path=[start];let budget=80000;
+    const deg=i=>{let n=0;for(let d=0;d<4;d++){const q=nb(i,d);if(!empty.has(q)&&!used[q])n++}return n};
+    const go=i=>{
+      if(path.length===N)return true;if(--budget<0)return false;
+      const cand=[];for(let d=0;d<4;d++){const q=nb(i,d);if(!empty.has(q)&&!used[q])cand.push([q,deg(q)+rng()*.9])}
+      cand.sort((a,b)=>a[1]-b[1]);
+      for(const [q] of cand){used[q]=1;path.push(q);if(go(q))return true;path.pop();used[q]=0}
+      return false;
+    };
+    if(!go(start))continue;
+    const hd=(a,b)=>{for(let d=0;d<4;d++)if(nb(a,d)===b)return d;return -1};
+    const tiles=[];
+    for(let k=1;k<N;k++){
+      const cell=path[k],hin=hd(path[k-1],cell),hout=k<N-1?hd(cell,path[k+1]):-1;
+      const roll=rng();
+      const t=hout<0?'x':hin===hout?(roll<.6?'s':'x'):'c';
+      const tmp={t,rot:0};let sol=0;
+      for(let rot=0;rot<4;rot++){tmp.rot=rot;if(hout<0?exitDir(tmp,hin)>=0:exitDir(tmp,hin)===hout){sol=rot;break}}
+      tiles.push({cell,t,rot0:Math.floor(rng()*4),sol});
+    }
+    const puz={day,start,N,path,tiles,h0:hd(path[0],path[1]),empty:[...empty]};
+    if(dcVerify(puz))return puz;                           // proof: replay the solution and check every tile gets crossed
+  }
+  return null;
+}
+function dcVerify(p){
+  const g=new Array(COLS*8).fill(null),T=(t,rot)=>({t,rot});
+  g[p.start]=T('x',0);p.tiles.forEach(x=>{g[x.cell]=T(x.t,x.sol)});
+  let c=p.start%COLS,r=(p.start-c)/COLS,h=p.h0,n=0;
+  for(let guard=0;guard<200;guard++){
+    const nc=(c+DX[h]+COLS)%COLS,nr=(r+DY[h]+8)%8,i=idx(nc,nr),tl=g[i];
+    if(!tl)break;
+    const e=exitDir(tl,h);
+    g[idx(c,r)]=null;n++;c=nc;r=nr;
+    if(e<0)break;h=e;
+  }
+  return n+1===p.N&&g.filter(Boolean).length===1;
+}
+function spawnDC(){
+  if(!dcReplay){   // every fresh attempt (including a restart) is counted; only the day's very first attempt can earn the secret rock
+    const a=lsGet('ottoDCAtt',{});const n=(a.day===dcPuz.day?a.n:0)+1;lsSet('ottoDCAtt',{day:dcPuz.day,n});dcPuz.first=(n===1);
+  }
+  const p=dcPuz,c=p.start%COLS,r=(p.start-c)/COLS;
+  logs.clear();desig=[];ff=false;moved=false;$('ff').classList.remove('on');
+  speed=BASE*1.25;                       // 1.25x and it never speeds up
+  grid=new Array(COLS*ROWS).fill(null);
+  const mk=(t,rot)=>({t,rot,a:rot*PI2,s:0,clam:false,heart:false,q:false,gold:false,boost:false});
+  grid[p.start]=mk('x',0);
+  p.tiles.forEach(x=>{grid[x.cell]=mk(x.t,dcReplay?x.sol:x.rot0)});
+  const e=dcReplay?p.h0:0;
+  otter={c,r,e,p:0,a:e*PI2,wait:dcReplay?2:60};   // 60 seconds to plan
+  dcX=0;dcY=p.N;dcEarly=false;
+  tutStartDC();
+}
+function dcArrive(){
+  const o=otter,nc=(o.c+DX[o.e]+COLS)%COLS,nr=(o.r+DY[o.e]+ROWS)%ROWS,ni=idx(nc,nr),tl=grid[ni];
+  const last=tl&&!grid.some((g,i)=>g&&i!==ni&&i!==idx(o.c,o.r));      // the tile Otto is entering is the only one left
+  const ne=tl?exitDir(tl,o.e):-1;
+  if(tl&&ni===dcPuz.path[dcPuz.N-1]&&grid.some((g,i)=>g&&i!==ni&&i!==idx(o.c,o.r))){dcEarly=true;crash(false);return}   // the buoy is the finish: not before every other tile is used
+  if(ne<0&&!last){crash(false);return}
+  burst(cxOf(o.c),cyOf(o.r),'#d6effa',8);SFX.splash();
+  grid[idx(o.c,o.r)]=null;dcX++;
+  o.c=nc;o.r=nr;o.e=ne<0?o.e:ne;o.p-=1;
+  if(!grid.some((g,i)=>g&&i!==ni)){dcX=dcY;hud();running=false;o.clap=true;SFX.jingle();popT=setTimeout(()=>dcEnd(true),1700);return}   // every tile crossed
+  hud();
+}
+function dcEnd(win){
+  mode='dcend';$('share').classList.add('hide');
+  const best=dcSave(win);
+  if(!dcReplay)dcAwards(dcPuz.day,win&&dcPuz.first!==false);
+  drawFace(win);$('face').classList.remove('hide');
+  $('rvis').classList.add('hide');$('buy').classList.add('hide');$('prk').classList.add('hide');
+  $('msg').classList.remove('hide');$('best').classList.remove('hide');
+  if(dcReplay){
+    $('title').textContent='Solution';
+    $('msg').textContent='That route crosses all '+dcY+' tiles. Compare it with yours!';
+    $('best').textContent='';$('go').classList.add('hide');
+  }else{
+    $('title').textContent=win?'Solved!':'Not this time';
+    $('msg').textContent=(win?'You crossed every tile. ':dcEarly?'Otto reached the buoy too soon. ':'Otto the otter swam into open water. ')+'Daily Challenge, '+dcPuz.day+': '+dcX+'/'+dcY+' tiles.';
+    $('best').textContent='Best today: '+best+'/'+dcY;
+    $('go').textContent='View solution';$('go').classList.remove('hide');
+    $('dcagain').classList.toggle('hide',!!win);   // a perfect solve has nothing to retry
+    shareText='\u{1F9A6} Otto Run Daily Challenge '+dcPuz.day+'\n'+(win?'\u2705 Solved! All ':'\u274C ')+dcX+'/'+dcY+' tiles crossed';
+    $('share').classList.remove('hide');
+  }
+  $('overlay').classList.remove('hide');
+}
+function dcSave(win){
+  let b=dcX;
+  try{const v=JSON.parse(localStorage.getItem('ottoDC')||'null');
+    if(!dcReplay){if(v&&v.day===dcPuz.day)b=Math.max(b,v.x||0);localStorage.setItem('ottoDC',JSON.stringify({day:dcPuz.day,x:b,win:win||(v&&v.day===dcPuz.day&&v.win)||false}))}
+    else if(v&&v.day===dcPuz.day)b=v.x||0}catch(e){}
+  return b;
+}
+function dcSolution(){
+  $('dcagain').classList.add('hide');
+  dcReplay=true;spawnDC();hud();
+  mode='start';running=true;
+  $('overlay').classList.add('hide');
+}
+function startDC(){
+  dcPuz=dcBuild(dcDate());
+  if(!dcPuz)return;
+  startMode(false,true);
+}
+function drawBuoy(){                 // finish marker: a lighthouse buoy with a glowing lamp and a checkered flag. It stands alone on the final tile, like a rock or a clam.
+  const bi=dcPuz.path[dcPuz.N-1],c=bi%COLS,r=(bi-c)/COLS;
+  if(!grid[bi])return;
+  const g=cx,u=cell/75,INK='#2f4a46',RED='#e9503a';
+  g.save();g.translate(cxOf(c),cyOf(r)+8*u);g.lineJoin='round';g.lineCap='round';
+  g.fillStyle='rgba(30,70,70,.26)';g.beginPath();g.ellipse(2*u,26*u,18*u,6.5*u,0,0,7);g.fill();
+  g.lineWidth=u*2;for(let k=0;k<2;k++){const p=((t*.5+k*.5)%1);g.strokeStyle='rgba(255,255,255,.55)';g.globalAlpha=1-p;g.beginPath();g.ellipse(0,26*u,(20+p*14)*u,(6.5+p*3)*u,0,0,7);g.stroke()}g.globalAlpha=1;
+  g.translate(0,Math.sin(t*2)*u*1.5);g.lineWidth=u*3;g.strokeStyle=INK;
+  const body=()=>{g.beginPath();g.moveTo(-14*u,24*u);g.lineTo(-9*u,-4*u);g.lineTo(9*u,-4*u);g.lineTo(14*u,24*u);g.closePath()};
+  body();g.fillStyle=RED;g.fill();
+  g.save();body();g.clip();g.fillStyle='#fff';g.fillRect(-16*u,5*u,32*u,8*u);g.restore();
+  body();g.stroke();
+  g.fillStyle='#6b7f84';g.fillRect(-5*u,-12*u,10*u,8*u);g.strokeRect(-5*u,-12*u,10*u,8*u);
+  const gl=.55+.45*Math.sin(t*4),gr=g.createRadialGradient(0,-20*u,1,0,-20*u,18*u);gr.addColorStop(0,'rgba(255,240,150,'+.9*gl+')');gr.addColorStop(1,'rgba(255,240,150,0)');
+  g.fillStyle=gr;g.beginPath();g.arc(0,-20*u,18*u,0,7);g.fill();
+  g.fillStyle='#ffe27a';g.beginPath();g.arc(0,-20*u,6*u,0,7);g.fill();g.stroke();
+  g.beginPath();g.moveTo(0,-26*u);g.lineTo(0,-40*u);g.stroke();
+  for(let a=0;a<3;a++)for(let b=0;b<2;b++){const dy=Math.sin(t*5+a*.9)*6*u*.14;g.fillStyle=(a+b)%2?'#fff':'#1f2b2b';g.fillRect(1.5*u+a*6*u,-42*u+b*6*u+dy,6.6*u,6.6*u)}   // waving checkered flag
+  g.lineWidth=u*2;g.strokeRect(1.5*u,-42*u,18*u,12*u);
+  g.restore();
+}
+function drawDCNumbers(){            // solution view: the order the route visits each tile
+  const p=dcPuz;cx.save();cx.textAlign='center';cx.textBaseline='middle';cx.font='bold '+Math.round(cell*.2)+'px "Trebuchet MS",sans-serif';cx.lineJoin='round';
+  p.path.forEach((i,k)=>{if(!grid[i])return;const c=i%COLS,r=(i-c)/COLS,x=cxOf(c)-cell*.3,y=cyOf(r)-cell*.3;
+    cx.lineWidth=3;cx.strokeStyle='#2f4a46';cx.strokeText(k+1,x,y);cx.fillStyle='#fff';cx.fillText(k+1,x,y)});
+  cx.restore();
+}
 let desig=[];                // the (up to) two crossroads where clams 2 and 3 of this level will appear
 let rockLock=3,rockLastClams=-99;   // a rock may spawn once level >= rockLock; from level 12 a 10-clam cooldown applies instead
 const shuf=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+// level 8 always has a wave, level 9 a volcano, level 10 plain wood; from level 11 each level is a volcano, a wave or plain, 1 in 3 each (decided once per level, so a retry keeps it)
+let kindLv=0,kindVal='';
+function levelKind(){if(zen||dc||level<8||level===10)return'';if(level===8)return'wave';if(level===9)return'volc';
+  if(kindLv!==level){kindLv=level;kindVal=['volc','wave',''][Math.floor(Math.random()*3)]}return kindVal}
 function spawn(){
+  volc=null;wave=null;volcDead.clear();noGo.clear();volcSnd.stop();
+  if(dc){spawnDC();return}
   const c=Math.floor(COLS/2),r=Math.floor(ROWS/2),me=idx(c,r);
   logs.clear();rockSpawned=false;desig=[];
   ff=false;moved=false;$('ff').classList.remove('on');
   speed=BASE*startMul();          // every level (and every retry) starts at its own base speed
   // level 2 starts with 1 block of wood, +1 per level, capped at 8 from level 9 on. It stays put all level long.
-  const nLogs=level<2?0:Math.min(8,level-1);
+  const kind=levelKind(),volcLevel=kind==='volc',waveLevel=kind==='wave';   // wave: 3 logs, volcano: 2 logs, otherwise wood grows by 1 a level up to 8
+  const nLogs=volcLevel?2:waveLevel?3:level<2?0:Math.min(8,level-1);
   if(nLogs){
     const others=[];
     for(let i=0;i<COLS*ROWS;i++)if(i!==me)others.push(i);
@@ -760,6 +943,13 @@ function spawn(){
     }
     (chosen||others.slice(0,nLogs)).forEach(i=>logs.add(i));
   }
+  if(volcLevel){   // volcano: an inner cell at least 2 away from Otto, so all 8 of its neighbours are real tiles. It blocks like wood.
+    const cand=[];for(let c2=1;c2<COLS-1;c2++)for(let r2=1;r2<ROWS-1;r2++){const i=idx(c2,r2);if(!logs.has(i)&&cheb(i,me)>=2)cand.push(i)}
+    const vi=cand[Math.floor(Math.random()*cand.length)];logs.add(vi);volc={i:vi,c:vi%COLS,r:Math.floor(vi/COLS),T:0,ph:0,tm:0};
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(dx||dy)noGo.add(idx(volc.c+dx,volc.r+dy));
+  }
+  if(waveLevel){wave={T:0,ph:0,row:0,ord:[0,1,2,3,4],delay:5};   // the first warning starts 5 s after Otto starts moving
+    wavePick(-1)}
   sinceResp=0;
   otter={c,r,e:0,p:0,a:0,wait:zen?Infinity:level<=3?10:7};   // countdown: 10 s on levels 1-3, 7 s after; zen: the otter waits until you press Go
   if(zen){
@@ -774,7 +964,7 @@ function spawn(){
   const firstRock=level===1&&noRocks()&&(tutWanted()||(()=>{try{return localStorage.getItem('ottoFirstRock')==='1'}catch(e){return false}})());   // level 1 holds a common rock while the player owns none (and the tutorial is on, or it is a brand-new phone)
   const q0=qDone;
   const mv=(i,j)=>{const a=i%COLS,b=(i-a)/COLS,c2=j%COLS,d=(j-c2)/COLS,dc=Math.abs(a-c2),dr=Math.abs(b-d);return Math.min(dc,COLS-dc)+Math.min(dr,ROWS-dr)};
-  const free=[];for(let i=0;i<COLS*ROWS;i++)if(i!==me&&!logs.has(i))free.push(i);
+  const free=[];for(let i=0;i<COLS*ROWS;i++)if(i!==me&&!logs.has(i)&&!noGo.has(i))free.push(i);
   let trip=[];
   for(const x of free){if(cheb(x,me)<=1)continue;for(const y of free)if(y!==x&&mv(x,y)>3)for(const z of free)if(z!==x&&z!==y&&mv(x,z)>3&&mv(y,z)>3)trip.push([x,y,z])}
   if(!trip.length){                       // (very crowded wood) fall back to cells that are at least 3 moves apart
@@ -793,7 +983,7 @@ function spawn(){
     const [C1,Da,Db]=tr;
     [C1,Da,Db].forEach(i=>{const g=grid[i];if(!(g&&g.t==='x'&&!g.gold&&!g.heart&&!g.q))grid[i]=crossTile()});
     let RK=-1;
-    if(firstRock){const cand=[];for(let i=0;i<grid.length;i++)if(i!==me&&i!==C1&&i!==Da&&i!==Db&&!logs.has(i)&&grid[i]&&grid[i].t==='x'&&!grid[i].gold&&!grid[i].heart&&!grid[i].q)cand.push(i);
+    if(firstRock){const cand=[];for(let i=0;i<grid.length;i++)if(i!==me&&i!==C1&&i!==Da&&i!==Db&&!blk(i)&&grid[i]&&grid[i].t==='x'&&!grid[i].gold&&!grid[i].heart&&!grid[i].q)cand.push(i);
       if(!cand.length)continue;RK=cand[Math.floor(Math.random()*cand.length)]}
     let order=null;
     if(routeOK([C1,Da,Db],true))order=[Da,Db];else if(routeOK([C1,Db,Da],true))order=[Db,Da];
@@ -801,7 +991,7 @@ function spawn(){
     if(firstRock&&!routeOK([RK],true))continue;
     grid[C1]={...crossTile(),clam:true};
     desig=order;
-    if(firstRock){const cm=Rocks.ROCKS.filter(x=>x.r===1),rt=rockTile(cm[Math.floor(Math.random()*cm.length)].n);rt.t0=t;grid[RK]=rt}
+    if(firstRock){const cm=Rocks.ROCKS.filter(x=>x.r===1&&!x.dcOnly),rt=rockTile(cm[Math.floor(Math.random()*cm.length)].n);rt.t0=t;grid[RK]=rt}
     ok=true;
   }
   if(!ok){                                    // (practically never) no layout passed the route check: use the last one but make sure there is a clam and two future spots
@@ -809,28 +999,30 @@ function spawn(){
     tr.forEach(i=>{const g=grid[i];if(!(g&&g.t==='x'&&!g.gold&&!g.heart&&!g.q))grid[i]=crossTile()});
     grid[tr[0]]={...crossTile(),clam:true};desig=[tr[1],tr[2]];
   }
+  if(wave)wavePick(-1);   // choose the first row once the clam is placed
   tutStart();
 }
 function init(){
-  tutRunDone=false;
+  tutRunDone=false;dcReplay=false;
   const c0=(W-16)/COLS;
   ROWS=8;   // fixed 8 x 5 board on every device
   grid=[];layout();
-  floats=[];runRocks={};rockLock=3;rockLastClams=-99;clams=0;score=0;qDone=false;snailHave=false;slowT=0;thr=1000;lives=3;speed=.5;removed=0;level=1;levelStart=0;heartTaken=false;shake=0;parts=[];t=0;
+  floats=[];runRocks={};rockLock=3;rockLastClams=-99;clams=0;score=0;qDone=false;snailHave=false;slowT=0;thr=1000;lives=3;speed=.5;removed=0;level=1;kindLv=0;levelStart=0;heartTaken=false;shake=0;parts=[];t=0;
   spawn();hud();
 }
 function hud(){
   $('pts').textContent=score.toLocaleString('en-US');$('pts').className=score>=1e6?'t2 xl':score>10000?'t2':score>1000?'t1':'';   // bigger above 1,000, bigger and pulsing above 10,000
- $('pts').style.display='';
+ $('pts').style.display=dc?'none':'';$('sico').style.display=dc?'none':'';
   $('lives').textContent='\u2665 '.repeat(Math.max(lives,0)).trim()||'\u2661';
-  $('lives').style.display=zen?'none':'';
-  $('slv').textContent=zen?'':'Lv '+level+' · ';
-  $('stxt').textContent=zen?clams:Math.min(clams-levelStart,99)+'/3';
+  $('lives').style.display=zen||dc?'none':'';
+  $('slv').textContent=zen||dc?'':'Lv '+level+' · ';
+  $('stxt').textContent=dc?dcX+'/'+dcY:zen?clams:Math.min(clams-levelStart,99)+'/3';
 }
 
 // ---- game logic ----
 function burst(x,y,col,n){for(let i=0;i<n;i++)parts.push({x,y,vx:R(-90,90),vy:R(-90,90),life:1,col,r:R(2,4.5)})}
 function arrive(){
+  if(dc){dcArrive();return}
   const o=otter,nc=(o.c+DX[o.e]+COLS)%COLS,nr=(o.r+DY[o.e]+ROWS)%ROWS;
   const tl=grid[idx(nc,nr)];
   const ne=tl?exitDir(tl,o.e):-1;
@@ -881,8 +1073,9 @@ function arrive(){
   }
   markNew=false;
   if(tl.q){tl.q=false;tl.gone=true;
-    if(Math.random()<.5){slowT=10;SFX.flute();burst(cxOf(nc),cyOf(nr),'#ffd95e',16)}   // 50%: 10 s at half speed (snail effect)
-    else{shuffleBoard();o.wait=5;startZap();burst(cxOf(nc),cyOf(nr),'#c9a8ff',16)}}   // 50%: shuffle everything, stun Otto for 5 s   // mystery tile: shuffle everything, stun Otto for 5 s
+    if(Math.random()<.5){speed=BASE*startMul();SFX.flute();burst(cxOf(nc),cyOf(nr),'#ffd95e',16)}   // 50%: Otto's speed drops back to the level's base (it still climbs again after)
+    else{shuffleBoard();o.wait=5;startZap();if(wave&&wave.ph!==1&&!o.swept){wave.stun=5;waveSnd.stop()}   /* lightning stuns the wave too (not mid-sweep) */
+    burst(cxOf(nc),cyOf(nr),'#c9a8ff',16)}}   // 50%: shuffle everything, stun Otto for 5 s   // mystery tile: shuffle everything, stun Otto for 5 s
 }
 // shuffle every cell except Otto's and the wood; the clam must stay reachable afterwards
 function shuffleBoard(){
@@ -899,9 +1092,10 @@ function shuffleBoard(){
 }
 let hitLog=false;
 function crash(byLog){
-  hitLog=!!byLog;  const o=otter;
+  volcSnd.stop();hitLog=!!byLog;  const o=otter;
   burst(cxOf(o.c)+DX[o.e]*o.p*cell,cyOf(o.r)+DY[o.e]*o.p*cell,'#ffffff',16);
   running=false;shake=1;o.p=.5;   // stop at the edge of the obstacle
+  if(dc){SFX.bonk();o.cry=true;popT=setTimeout(()=>dcEnd(false),1700);return}
   if(zen){SFX.bonk();o.cry=true;popT=setTimeout(()=>{spawn();running=true},1700);return}   // zen: no lives, just a fresh board
   if(clams-levelStart>=3){SFX.jingle();o.clap=true;popT=setTimeout(()=>showPop('next'),1700);return}   // show the clapping otter first   // 3 clams this level: advance
   SFX.bonk();o.cry=true;lives--;hud();
@@ -962,7 +1156,7 @@ function drawRetryVis(){            // remaining hearts + clams of this level, a
   }finally{cx=sCx}
 }
 function showPop(kind,isNew){
-  mode=kind;
+  mode=kind;$('go').classList.remove('hide');$('share').classList.add('hide');
   $('msg').classList.remove('hide');$('best').classList.remove('hide');$('rvis').classList.add('hide');$('buy').classList.add('hide');
   drawFace(kind==='next'||!!isNew);
   $('face').classList.remove('hide');
@@ -984,6 +1178,7 @@ function showPop(kind,isNew){
     $('best').textContent='Best: '+best.toLocaleString('en-US');
     $('go').textContent='Start Over';
     $('buy').classList.remove('hide');
+    if(isNew){shareText='\u{1F9A6} Otto Run: I just set a new high score of '+score.toLocaleString('en-US')+' (reached level '+level+')! Can you beat it?';$('share').classList.remove('hide')}
     $('hud').classList.add('hide');$('restart').classList.add('hide');$('pause').classList.add('hide');$('ff').classList.add('hide');$('snail').classList.add('hide');
   }
   paintRunRocks(kind!=='next');
@@ -1003,6 +1198,7 @@ function paintRunRocks(show){
 }
 function end(){
   running=false;
+  if(!testMode&&score>todayBest()){try{localStorage.setItem('ottoDayBest',JSON.stringify({day:localDay(),s:score}))}catch(e){}}
   const isNew=!testMode&&score>best;   // test games never change the high score
   if(isNew){best=score;try{localStorage.setItem('otterBestScore',best)}catch(e){}}
   showPop('over',isNew);
@@ -1023,14 +1219,271 @@ function update(dt){
   {const b=$('snail'),act=slowT>0;
    b.classList.toggle('has',snailHave&&!act);b.classList.toggle('act',act);
    b.style.background=act?'conic-gradient(#ffd95e '+(slowT/10*360)+'deg, rgba(253,243,216,.95) 0)':'';
-   b.style.display=(zen||!moved)?'none':'';}   // hidden until Otto starts moving
+   b.style.display=(zen||dc||!moved)?'none':'';}   // hidden until Otto starts moving
+  if(wave&&o.swept){o.swept.x+=dt*cell*8;o.swept.rot+=dt*9;waveStep(dt)}   // Otto is carried off the screen by the wave
   if(!running)return;
   if(o.wait>0){if(!tutOn)o.wait-=dt;return}
   moved=true;
   if(slowT>0)slowT=Math.max(0,slowT-dt);
   o.p+=speed*(o.boost>0?2:1)*(ff?2:1)*(slowT>0?.5:1)*dt;
+  if(volc)volcStep(dt);
+  if(wave)waveStep(dt);
   if(o.boost>0&&Math.random()<dt*40)burst(cxOf(o.c)+DX[o.e]*o.p*cell,cyOf(o.r)+DY[o.e]*o.p*cell,'#ffd21f',1);
   if(o.p>=1)arrive();
+}
+
+
+// ---- Volcano sounds: Rolling Thunder while it bubbles, Eruption Roar while it explodes. The sound follows the volcano's phase and stops with it. ----
+const volcSnd={cur:null,g:null,srcs:[],brown:null,
+  stop(){
+    if(typeof waveSnd!=='undefined')waveSnd.stop();
+    if(AC&&this.g){try{const t=AC.currentTime;this.g.gain.cancelScheduledValues(t);this.g.gain.setTargetAtTime(0,t,.06);this.srcs.forEach(n=>{try{n.stop(t+.4)}catch(e){}})}catch(e){}}
+    this.srcs=[];this.g=null;this.cur=null},
+  sync(ph,tm){
+    if(this.cur===ph)return;
+    const a=audio();if(!a)return;
+    this.stop();this.cur=ph;
+    if(ph===2)return;
+    if(!this.brown){const n=a.sampleRate*4,b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0);let last=0;for(let i=0;i<n;i++){last=(last+.02*(Math.random()*2-1))/1.02;d[i]=last*3.5}this.brown=b}
+    const comp=a.createDynamicsCompressor(),g=a.createGain();g.gain.value=.7;g.connect(comp);comp.connect(OUT);this.g=g;
+    const t0=a.currentTime+.03,dur=Math.max(.3,6-tm),S=this;
+    const src=(buf,t,d)=>{const x=a.createBufferSource();x.buffer=buf;x.loop=true;x.start(t);x.stop(t+d+.1);S.srcs.push(x);return x};
+    const osc=(type,f,t,d)=>{const o=a.createOscillator();o.type=type;o.frequency.setValueAtTime(f,t);o.start(t);o.stop(t+d+.1);S.srcs.push(o);return o};
+    const gn=v=>{const x=a.createGain();x.gain.value=v;return x};
+    const fl=(type,f,q)=>{const x=a.createBiquadFilter();x.type=type;x.frequency.value=f;if(q)x.Q.value=q;return x};
+    const ch=(...n)=>{for(let i=0;i<n.length-1;i++)n[i].connect(n[i+1])};
+    const click=(c,hf,pk,len)=>{const w=src(NB,c,len),hp=fl('highpass',hf),cg=gn(0);cg.gain.setValueAtTime(0,c);cg.gain.linearRampToValueAtTime(pk,c+.004);cg.gain.exponentialRampToValueAtTime(.001,c+len);ch(w,hp,cg,g)};
+    if(ph===0){   // Rolling Thunder: low swells that come and go, with crackles of falling grit
+      const n=src(this.brown,t0,dur),lp=fl('lowpass',170),sg=gn(0);sg.gain.setValueAtTime(.12,t0);
+      let t=t0+.2;while(t<t0+dur-.5){const pk=.6+Math.random()*.8,len=.9+Math.random()*1.1;sg.gain.linearRampToValueAtTime(pk,t+.35);sg.gain.linearRampToValueAtTime(.15,t+len);t+=len+.1+Math.random()*.4}
+      sg.gain.linearRampToValueAtTime(0,t0+dur);ch(n,lp,sg,g);
+      for(let i=0;i<Math.round(14*dur/6);i++)click(t0+Math.random()*dur,2500,.12,.04);
+    }else{        // Eruption Roar: a boom (only if the blast has just started), then a roar that holds to the end with crackling rock
+      if(tm<.5){
+        const o=osc('sine',130,t0,1.6),og=gn(0);o.frequency.exponentialRampToValueAtTime(26,t0+.9);og.gain.setValueAtTime(0,t0);og.gain.linearRampToValueAtTime(.85,t0+.015);og.gain.exponentialRampToValueAtTime(.001,t0+1.5);ch(o,og,g);
+        const n=src(NB,t0,1.4),lp=fl('lowpass',3500),ng=gn(0);lp.frequency.exponentialRampToValueAtTime(180,t0+1.2);ng.gain.setValueAtTime(0,t0);ng.gain.linearRampToValueAtTime(.8,t0+.01);ng.gain.exponentialRampToValueAtTime(.001,t0+1.3);ch(n,lp,ng,g)}
+      const n=src(NB,t0,dur),bp=fl('bandpass',500,.7),rg=gn(0);bp.frequency.exponentialRampToValueAtTime(140,t0+dur);
+      rg.gain.setValueAtTime(0,t0);rg.gain.linearRampToValueAtTime(.8,t0+Math.min(.25,dur/3));rg.gain.setValueAtTime(.8,t0+dur*.5);rg.gain.linearRampToValueAtTime(0,t0+dur);ch(n,bp,rg,g);
+      const b=src(this.brown,t0,dur),lp2=fl('lowpass',120),bg=gn(0);bg.gain.setValueAtTime(0,t0);bg.gain.linearRampToValueAtTime(1,t0+.3);bg.gain.setValueAtTime(1,t0+Math.max(.3,dur-1.5));bg.gain.linearRampToValueAtTime(0,t0+dur);ch(b,lp2,bg,g);
+      for(let i=0;i<Math.round(30*dur/6);i++)click(t0+.3+Math.random()*Math.max(.1,dur-.5),1800,.18,.05);
+    }
+  }};
+// ---- Volcano level (test build): an island volcano on an 18 s cycle, 6 s bubbling / 6 s exploding / 12 s cooling ----
+const Volc=(()=>{
+const rnd=i=>{const x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x)};
+const mix=(a,b,t)=>a.map((v,i)=>Math.round(v+(b[i]-v)*t));
+const rgb=c=>'rgb('+c.join(',')+')';
+const ASH=[74,68,64],LAVA=[255,122,31],HOT=[255,214,90];
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const heat=(s,p)=>s===0?.3+.55*p:s===1?1:1-clamp(p*1.1)*.95;
+function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()}
+function circ(g,x,y,r,f){g.fillStyle=f;g.beginPath();g.arc(x,y,r,0,7);g.fill()}
+function blob(g,cx,cy,r,j,seed,f){g.fillStyle=f;g.beginPath();for(let i=0;i<=28;i++){const a=i/28*6.283,rr_=r+(rnd(seed+(i%28))-.5)*j;g.lineTo(cx+Math.cos(a)*rr_,cy+Math.sin(a)*rr_)}g.closePath();g.fill()}
+function dIsland(g,s,p,t,h){   // 2: a round island in the water
+  for(let i=0;i<3;i++){g.strokeStyle='rgba(255,255,255,'+(.5-i*.14)+')';g.lineWidth=2;g.beginPath();for(let k=0;k<=36;k++){const a=k/36*6.283;g.lineTo(50+Math.cos(a)*(40+i*3.5+Math.sin(t*2+i+k)*1),50+Math.sin(a)*(40+i*3.5+Math.sin(t*2+i+k)*1))}g.closePath();g.stroke()}
+  blob(g,50,50,37,5,100,'#ecd9a6');blob(g,50,50,30,4,130,rgb(mix([96,84,78],[110,106,104],s===2?p*.7:0)));
+  g.lineCap='round';
+  for(let i=0;i<8;i++){const a=i/8*6.283+.2,len=s===0?.35+.5*p:1;g.strokeStyle=rgb(mix(ASH,LAVA,h));g.lineWidth=s===1?4:2.6;g.globalAlpha=s===2?clamp(1-p*1.3)+.2:.5+.5*h;g.beginPath();g.moveTo(50+Math.cos(a)*10,50+Math.sin(a)*10);g.lineTo(50+Math.cos(a)*(10+19*len),50+Math.sin(a)*(10+19*len));g.stroke()}g.globalAlpha=1;
+  const rg=g.createRadialGradient(50,50,1,50,50,14);rg.addColorStop(0,rgb(mix(ASH,HOT,h*h)));rg.addColorStop(1,rgb(mix(ASH,LAVA,h)));g.fillStyle='#2b2522';g.beginPath();g.arc(50,50,15,0,7);g.fill();g.fillStyle=rg;g.beginPath();g.arc(50,50,12,0,7);g.fill();
+  if(s===0)for(let i=0;i<5;i++){const q=((t*.8+rnd(i))%1);circ(g,50+(rnd(i+5)-.5)*14,50+(rnd(i+9)-.5)*14,1+q*3,'rgba(255,236,170,'+(1-q)+')')}
+}
+const FLASH=(g,s,p)=>{if(s===1&&p<.1)circ(g,50,50,(1-p/.1)*60,'rgba(255,244,200,'+(.8*(1-p/.1))+')');if(s===1&&p>.33&&p<.4){const q=(p-.33)/.07;circ(g,50,50,(1-q)*44,'rgba(255,230,170,'+(.6*(1-q))+')')}};
+
+// ---------- per-tile schedule ----------
+const NB=[0,1,2,3,5,6,7,8];                       // positions of the eight neighbours (4 is the volcano)
+const DEST=[],RESP=[];
+{const order=NB.map((k,i)=>[rnd(i+3000),k]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
+ NB.forEach(k=>{const dx=(k%3-1)*100,dy=(Math.floor(k/3)-1)*100,d=Math.hypot(dx,dy);DEST[k]=.65+d/100*.35+rnd(k+3100)*.35;RESP[k]=1+order.indexOf(k)*.5})}
+// Exploding: shockwave reaches edge tiles at about 0.8 s and corner tiles at about 1.2 s, tiles shatter just after.
+// ---------- the eruption ----------
+const BOMBS=110;
+function target(i){const k=NB[Math.floor(rnd(i+500)*8)];return[k,(k%3)*100+10+rnd(i+600)*80,Math.floor(k/3)*100+10+rnd(i+700)*80]}
+function eruption(g,s,p,t,aliveK){
+  if(s===0){
+    for(let i=0;i<4;i++){const q=((t*.5+rnd(i+900))%1);if(q>.55)continue;const k=q/.55,a=rnd(i+910)*6.28,d=22*k;circ(g,150+Math.cos(a)*d,150+Math.sin(a)*d-Math.sin(k*3.14)*14,1.6,'rgba(255,200,90,'+(1-k)+')')}
+    return}
+  if(s===1){const dim=clamp(p*8)*.26*(1-clamp((p-.8)/.2));if(dim){g.fillStyle='rgba(50,40,44,'+dim+')';g.fillRect(-3000,-3000,6300,6300)}}
+  for(let i=0;i<BOMBS;i++){
+    const [k,tx,ty]=target(i),t0=.02+rnd(i)*.62,fl=.1+rnd(i+20)*.07,r0=2.2+rnd(i+40)*3.4;
+    const q=s===1?(p-t0)/fl:2;
+    if(s===1&&q<0)continue;
+    if(s===1&&q<1){const x=150+(tx-150)*q,y=150+(ty-150)*q,hgt=Math.sin(q*Math.PI)*(50+rnd(i+55)*50);
+      g.fillStyle='rgba(20,20,20,.25)';g.beginPath();g.ellipse(x,y+3,r0*.9*(1-hgt/220),r0*.5,0,0,7);g.fill();
+      circ(g,x,y-hgt,r0*2.1,'rgba(255,150,60,.3)');circ(g,x,y-hgt,r0,i%3?rgb(mix(HOT,LAVA,q)):'#3b2f2a');continue}
+    if(s===2&&aliveK(k))continue;      // a regrown tile is clean
+    const sinceLand=s===1?(p-t0-fl)*6:6+p*12;   // seconds since landing
+    const cool=clamp(sinceLand/9),fade=s===2?clamp((p-.6)/.4):0,sz=r0*1.5*(s===1?1+clamp(1-sinceLand/.3)*.8:1);
+    g.globalAlpha=1-fade;circ(g,tx,ty,sz+2,'rgba(30,24,22,.35)');
+    circ(g,tx,ty,sz,rgb(mix(HOT,[58,48,44],cool)));circ(g,tx-sz*.2,ty-sz*.2,sz*.5,rgb(mix(HOT,[88,70,62],cool)));
+    if(cool<.7)circ(g,tx,ty,sz*2.2,'rgba(255,140,50,'+(.22*(1-cool))+')');
+    if(s===2&&p<.8&&rnd(i+300)>.45){const w=((t*.4+rnd(i))%1);circ(g,tx+Math.sin(w*6+i)*2,ty-w*14,2+w*3.4,'rgba(240,244,246,'+(.45*(1-p)*(1-p))+')')}
+    g.globalAlpha=1}
+  if(s===1){
+    for(let i=0;i<34;i++){const q=clamp(p*1.7-rnd(i)*.25),rad=q*(46+rnd(i+3)*70),a=rnd(i+9)*6.283;if(q<=0)continue;const fadeout=1-clamp((p-.7)/.3);
+      circ(g,150+Math.cos(a)*rad,150+Math.sin(a)*rad,10+q*22,'rgba('+Math.round(70+q*34)+','+Math.round(62+q*30)+','+Math.round(60+q*28)+','+(.5*(1-q*.8)*fadeout)+')')}
+    for(let i=0;i<16;i++){const q=clamp(p*2.6-rnd(i+80)*.3);if(q<=0||q>1)continue;const rad=q*(30+rnd(i+90)*60),a=rnd(i+95)*6.283;circ(g,150+Math.cos(a)*rad,150+Math.sin(a)*rad,6+q*10,'rgba(255,150,60,'+(.5*(1-q))+')')}
+    [0,.33].forEach((o,w)=>{for(let k=0;k<3;k++){const q=clamp((p-o)*4.5-k*.15);if(q<=0||q>=1)continue;g.strokeStyle='rgba(255,236,190,'+(1-q)*.8+')';g.lineWidth=5-k;g.beginPath();g.arc(150,150,20+q*190,0,7);g.stroke()}});
+    for(let i=0;i<60;i++){const q=((p*1.6+rnd(i))%1);if(p<.12)break;circ(g,rnd(i+120)*300,q*300,1+rnd(i+130)*1.6,'rgba(70,62,64,'+(.5*clamp((p-.12)*3)*(1-clamp((p-.8)/.2)))+')')}
+  }
+  if(s===2){for(let i=0;i<40;i++){const q=((t*.18+rnd(i))%1);circ(g,rnd(i+120)*300,q*300,1+rnd(i+130)*1.4,'rgba(80,72,74,'+(.4*(1-p)*clamp(1-Math.abs(q-.5)*1.4))+')')}}
+}
+
+function rr2(g,x,y,w,h,r){rr(g,x,y,w,h,r)}
+function drawAll(g,x,y,cell,ph,tm,T,info){
+  const p=tm/[6,6,12][ph];g.save();g.translate(x,y);g.scale(cell/100,cell/100);g.translate(-150,-150);
+  const hh=info.half;
+  NB.forEach(k=>{
+    const cx0=(k%3)*100+50,cy0=Math.floor(k/3)*100+50;
+    if(!info.alive(k)){
+      g.fillStyle='rgba(20,40,40,.18)';g.beginPath();g.arc(cx0,cy0,34,0,7);g.fill();
+      if(ph===1&&info.dead(k)){const q=(tm-DEST[k])/.5;if(q>=0&&q<1){g.save();g.translate(cx0,cy0);
+        for(let i=0;i<7;i++){const a=rnd(i+k*9)*6.283,d=18+q*(36+rnd(i+k*7)*30),rot=rnd(i)*6+q*5;g.save();g.translate(Math.cos(a)*d,Math.sin(a)*d+q*q*22);g.rotate(rot);g.globalAlpha=1-q;g.fillStyle='#cdebf8';g.strokeStyle='#86bde0';g.lineWidth=2;rr(g,-8,-8,16,16,4);g.fill();g.stroke();g.restore()}
+        circ(g,0,0,(1-q)*40,'rgba(255,170,80,'+(.5*(1-q))+')');g.restore()}}
+    }else{
+      const red=ph===0?Math.sin((tm%.5)/.5*Math.PI):ph===1?1:0;
+      if(red>0){g.strokeStyle='rgba(255,50,40,'+red+')';g.lineWidth=5;rr(g,cx0-hh,cy0-hh,2*hh,2*hh,18);g.stroke()}
+      if(ph===2){const q=(tm-RESP[k])/.45;if(q>=0&&q<1){g.strokeStyle='rgba(255,255,255,'+(1-q)*.9+')';g.lineWidth=3;g.beginPath();g.arc(cx0,cy0,30+q*30,0,7);g.stroke()}}
+    }});
+  g.save();g.translate(100,100);dIsland(g,ph,p,T,heat(ph,p));FLASH(g,ph,p);g.restore();
+  eruption(g,ph,p,T,info.alive2);
+  g.restore();
+}
+return{DEST,RESP,NB,drawAll}})();
+const VN=[[-1,-1],[0,-1],[1,-1],[-1,0],null,[1,0],[-1,1],[0,1],[1,1]];   // neighbour offsets, indexed like the 3x3 patch
+function volcRestore(ci){
+  const orig=volcDead.get(ci);volcDead.delete(ci);if(!orig)return;
+  if(!grid[ci]){if(orig.clam&&grid.some(g=>g&&g.clam))orig.clam=false;orig.s=0;grid[ci]=orig}
+}
+function volcStep(dt){
+  const v=volc,prev=v.ph;volcSnd.sync(v.ph,v.tm);v.T+=dt;if(v.T>=24)v.T-=24;
+  v.ph=v.T<6?0:v.T<12?1:2;v.tm=v.T-[0,6,12][v.ph];
+  if(prev===2&&v.ph===0)[...volcDead.keys()].forEach(volcRestore);   // anything still missing grows back before the next cycle
+  const me=idx(otter.c,otter.r);
+  Volc.NB.forEach(k=>{
+    const ci=idx(v.c+VN[k][0],v.r+VN[k][1]);
+    if(v.ph===1){
+      if(v.tm>=Volc.DEST[k]&&!volcDead.has(ci)&&ci!==me&&grid[ci]&&!logs.has(ci)){
+        volcDead.set(ci,grid[ci]);grid[ci]=null;burst(cxOf(v.c+VN[k][0]),cyOf(v.r+VN[k][1]),'#ffb05a',10);SFX.splash()}
+    }else if(v.ph===2&&v.tm>=Volc.RESP[k]&&volcDead.has(ci))volcRestore(ci);
+  });
+  if(v.ph===1&&v.tm<3)shake=Math.max(shake,.3*(1-v.tm/3));   // the whole board rumbles at the start of the blast
+}
+function drawVolcano(){
+  const v=volc,half=(cell/2-3)/cell*100;
+  Volc.drawAll(cx,cxOf(v.c),cyOf(v.r),cell,v.ph,v.tm,t,{half,
+    alive:k=>{const ci=idx(v.c+VN[k][0],v.r+VN[k][1]);return !!grid[ci]},
+    dead:k=>volcDead.has(idx(v.c+VN[k][0],v.r+VN[k][1])),
+    alive2:k=>!!grid[idx(v.c+VN[k][0],v.r+VN[k][1])]});
+}
+
+
+// ---- Wave sounds: Rising Rush while the warning counts down, Crashing Surf while the wave sweeps, a Bubble Pop for each tile that returns ----
+const waveSnd={cur:null,g:null,srcs:[],brown:null,
+  stop(){
+    if(AC&&this.g){try{const t=AC.currentTime;this.g.gain.cancelScheduledValues(t);this.g.gain.setTargetAtTime(0,t,.06);this.srcs.forEach(n=>{try{n.stop(t+.4)}catch(e){}})}catch(e){}}
+    this.srcs=[];this.g=null;this.cur=null},
+  mk(a){const comp=a.createDynamicsCompressor(),g=a.createGain();g.gain.value=.7;g.connect(comp);comp.connect(OUT);return g},
+  pop(){
+    const a=audio();if(!a)return;const g=this.mk(a),t=a.currentTime+.01;
+    const bl=(f0,f1,pk,d,t0)=>{const o=a.createOscillator(),x=a.createGain();o.type='sine';o.frequency.setValueAtTime(f0,t0);o.frequency.exponentialRampToValueAtTime(f1,t0+d*.7);x.gain.setValueAtTime(0,t0);x.gain.linearRampToValueAtTime(pk,t0+.008);x.gain.exponentialRampToValueAtTime(.001,t0+d);o.connect(x);x.connect(g);o.start(t0);o.stop(t0+d+.05)};
+    bl(260,820,.4,.18,t);bl(700,1300,.12,.1,t+.1)},
+  sync(ph,tm){
+    if(this.cur===ph)return;
+    const a=audio();if(!a)return;
+    this.stop();this.cur=ph;
+    if(ph!==0&&ph!==1)return;
+    if(!this.brown){const n=a.sampleRate*4,b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0);let last=0;for(let i=0;i<n;i++){last=(last+.02*(Math.random()*2-1))/1.02;d[i]=last*3.5}this.brown=b}
+    const g=this.mk(a);this.g=g;
+    const S=this,t0=a.currentTime+.03;
+    const src=(buf,t,d)=>{const x=a.createBufferSource();x.buffer=buf;x.loop=true;x.start(t);x.stop(t+d+.1);S.srcs.push(x);return x};
+    const osc=(type,f,t,d)=>{const o=a.createOscillator();o.type=type;o.frequency.setValueAtTime(f,t);o.start(t);o.stop(t+d+.1);S.srcs.push(o);return o};
+    const gn=v=>{const x=a.createGain();x.gain.value=v;return x};
+    const fl=(type,f,q)=>{const x=a.createBiquadFilter();x.type=type;x.frequency.value=f;if(q)x.Q.value=q;return x};
+    const ch=(...n)=>{for(let i=0;i<n.length-1;i++)n[i].connect(n[i+1])};
+    if(ph===0){   // Rising Rush: a hiss sweeping up and swelling, with a deep tone underneath
+      const d=Math.max(.5,WV.IND-tm);
+      const n=src(NB,t0,d),bp=fl('bandpass',200,.9),rg=gn(0);bp.frequency.setValueAtTime(200,t0);bp.frequency.exponentialRampToValueAtTime(2600,t0+d);
+      rg.gain.setValueAtTime(.02,t0);rg.gain.exponentialRampToValueAtTime(.9,t0+d-.2);rg.gain.linearRampToValueAtTime(0,t0+d);ch(n,bp,rg,g);
+      const s=osc('sine',50,t0,d),sg=gn(0);s.frequency.exponentialRampToValueAtTime(110,t0+d);sg.gain.setValueAtTime(0,t0);sg.gain.linearRampToValueAtTime(.35,t0+d-.3);sg.gain.linearRampToValueAtTime(0,t0+d);ch(s,sg,g);
+    }else{        // Crashing Surf: a wave that builds, breaks and fades, sweeping left to right, with foam crackle
+      const d=Math.max(.5,WV.WAVE-tm);
+      const pn=a.createStereoPanner();pn.pan.setValueAtTime(-.6,t0);pn.pan.linearRampToValueAtTime(.6,t0+d);
+      const n=src(NB,t0,d),lp=fl('lowpass',600),sg=gn(0);lp.frequency.setValueAtTime(600,t0);lp.frequency.exponentialRampToValueAtTime(5000,t0+d*.3);lp.frequency.exponentialRampToValueAtTime(500,t0+d);
+      sg.gain.setValueAtTime(0,t0);sg.gain.linearRampToValueAtTime(.9,t0+d*.27);sg.gain.exponentialRampToValueAtTime(.001,t0+d);ch(n,lp,sg,pn,g);
+      const b=src(this.brown,t0,d),bl=fl('lowpass',120),bg=gn(0);bg.gain.setValueAtTime(0,t0);bg.gain.linearRampToValueAtTime(1,t0+d*.23);bg.gain.exponentialRampToValueAtTime(.001,t0+d);ch(b,bl,bg,g);
+      for(let i=0;i<26;i++){const c=t0+d*.17+Math.random()*(d*.8),w=src(NB,c,.04),hp=fl('highpass',3500),cg=gn(0);cg.gain.setValueAtTime(0,c);cg.gain.linearRampToValueAtTime(.08,c+.004);cg.gain.exponentialRampToValueAtTime(.001,c+.04);ch(w,hp,cg,g)}
+    }
+  }};
+// ---- Wave level (test build): every 26.5 s a wave washes one row of tiles away ----
+// 0-6 s a warning at the side of the row, 6-9 s the wave pushes the row off the board, 9-14 s empty water, then the tiles return one every 0.5 s, then 10 s of calm.
+const WV={IND:6,WAVE:3,GAP:5,REG:2.5,CALM:10,TOT:26.5};
+const rowHasClam=r=>{for(let c=0;c<COLS;c++){const g=grid[idx(c,r)];if(g&&g.clam)return true}return desig.some(i=>Math.floor(i/COLS)===r)};   // the clam's row, or the row of a planned future clam spot
+function wavePick(prevRow){const w=wave;let rows=[];for(let r=0;r<ROWS;r++)if(r!==prevRow&&!rowHasClam(r))rows.push(r);   // never the clam's row or a planned clam spot's row
+  if(!rows.length)for(let r=0;r<ROWS;r++)if(r!==prevRow)rows.push(r);
+  const r=rows[Math.floor(Math.random()*rows.length)];w.row=r;
+  w.ord=[0,1,2,3,4].map(c=>[Math.random(),c]).sort((a,b)=>a[0]-b[0]).map(x=>x[1])}
+const waveRet=c=>WV.IND+WV.WAVE+WV.GAP+wave.ord.indexOf(c)*.5;
+const waveFront=T=>{const q=Math.min(1,Math.max(0,(T-WV.IND)/WV.WAVE));return -cell*1.2+(W+cell*2.8)*Math.pow(q,1.7)};
+const wSmooth=x=>{x=Math.min(1,Math.max(0,x));return x*x*(3-2*x)};
+const wavePush=(c,F)=>{const d=F+cell*.42-cxOf(c);return wSmooth(d/(cell*.55))*Math.max(0,d)};
+function otterXY(){const o=otter;let x=cxOf(o.c)+DX[o.e]*o.p*cell,y=cyOf(o.r)+DY[o.e]*o.p*cell;const nx=o.c+DX[o.e],ny=o.r+DY[o.e];
+  if(o.p>=.5&&(nx<0||nx>=COLS||ny<0||ny>=ROWS)){x-=DX[o.e]*COLS*cell;y-=DY[o.e]*ROWS*cell}return{x,y}}
+function waveStep(dt){
+  const w=wave;if(w.stun>0){w.stun-=dt;return}   // stunned by lightning: the whole wave cycle freezes
+  if(w.delay>0){w.delay-=dt;return}
+  const prev=w.ph;w.T+=dt;
+  if(w.T>=WV.TOT){w.T-=WV.TOT;[...volcDead.keys()].forEach(volcRestore);wavePick(w.row)}
+  const T=w.T;w.ph=T<WV.IND?0:T<WV.IND+WV.WAVE?1:T<WV.IND+WV.WAVE+WV.GAP?2:T<WV.IND+WV.WAVE+WV.GAP+WV.REG?3:4;
+  waveSnd.sync(w.ph,T);
+  if(w.ph===0&&rowHasClam(w.row))wavePick(w.row);   // a new clam appeared in the warned row: move the warning to another row
+  if(w.ph===1&&prev===0)shake=Math.max(shake,.4);
+  const o=otter,F=waveFront(T);
+  if(w.ph===1){
+    for(let c=0;c<COLS;c++){const ci=idx(c,w.row);
+      if(grid[ci]&&!grid[ci].clam&&!desig.includes(ci)&&!logs.has(ci)&&F+cell*.42>=cxOf(c)){volcDead.set(ci,grid[ci]);grid[ci]=null;burst(cxOf(c),cyOf(w.row),'#d6effa',8)}}
+    if(!o.swept&&running){const p=otterXY();   // Otto in the row when the wave reaches him: swept off the screen, one life lost
+      if(Math.abs(p.y-cyOf(w.row))<cell*.5&&F+cell*.42>=p.x){
+        o.swept={x:p.x,y:p.y,rot:0};running=false;shake=1;SFX.bonk();o.cry=true;lives--;hud();
+        popT=setTimeout(()=>{if(lives<=0)end();else showPop('retry')},1700)}}
+  }else if(w.ph===3){
+    for(let c=0;c<COLS;c++){const ci=idx(c,w.row);if(volcDead.has(ci)&&T>=waveRet(c)){volcRestore(ci);waveSnd.pop()}}
+  }
+}
+const waveShake=(c,r)=>{const w=wave;if(!w||w.delay>0||r!==w.row||w.ph!==0||w.T<4.8)return 0;return Math.sin(t*50+c)*(w.T-4.8)/1.2*cell*.06};
+function drawWave(){
+  if(wave.delay>0)return;
+  const w=wave,T=w.T,ry=cyOf(w.row),top=ry-cell/2-4,bot=ry+cell/2+4,x0b=ox;
+  if(w.ph===0){
+    const k=T/WV.IND;
+    cx.save();cx.setLineDash([cell*.12,cell*.09]);cx.strokeStyle='rgba(233,80,58,'+(.4+.5*Math.abs(Math.sin(t*(2+k*8))))+')';cx.lineWidth=2+k*2;
+    rr(ox-2,ry-cell/2+1,COLS*cell+4,cell-2,cell*.2);cx.stroke();cx.restore();
+    // indicator pill at the left edge: blue chevrons and a countdown ring
+    const pw=cell*.78,ph=cell*.86,px=2,py=ry-ph/2;
+    cx.fillStyle='rgba(15,50,85,.55)';rr(px,py,pw,ph,cell*.2);cx.fill();
+    const sp=2+k*8;cx.lineCap='round';cx.lineJoin='round';
+    for(let i=0;i<3;i++){const a=Math.max(0,Math.sin(t*sp-i*1.1));cx.strokeStyle='rgba(70,165,255,'+(.3+.7*a)+')';cx.lineWidth=cell*.07;
+      const bx=px+cell*.09+i*cell*.105;cx.beginPath();cx.moveTo(bx,ry+cell*.04);cx.lineTo(bx+cell*.07,ry+cell*.17);cx.lineTo(bx,ry+cell*.3);cx.stroke()}
+    const rx=px+pw/2,rr0=cell*.17,ryy=ry-cell*.17;
+    cx.strokeStyle='rgba(255,255,255,.35)';cx.lineWidth=cell*.06;cx.beginPath();cx.arc(rx,ryy,rr0,0,7);cx.stroke();
+    cx.strokeStyle='#ffd95e';cx.beginPath();cx.arc(rx,ryy,rr0,-Math.PI/2,-Math.PI/2+6.283*(1-k));cx.stroke();
+    cx.fillStyle='#fff';cx.font='700 '+Math.round(cell*.22)+'px system-ui,sans-serif';cx.textAlign='center';cx.textBaseline='middle';cx.fillText(String(Math.max(0,Math.ceil(WV.IND-T))),rx,ryy+1);
+  }else if(w.ph===1){
+    const F=waveFront(T);
+    // the tiles being pushed along ahead of the wave
+    for(let c=0;c<COLS;c++){const ci=idx(c,w.row),tl=volcDead.get(ci);if(!tl)continue;
+      const push=wavePush(c,F),x=cxOf(c)+push;if(x>W+cell)continue;
+      const bob=Math.sin(push*.05+c)*cell*.1*wSmooth(push/(cell*.4)),rot=push*.012*(c%2?1:-1);
+      cx.save();cx.translate(push,-bob);cx.translate(cxOf(c),ry);cx.rotate(rot);cx.translate(-cxOf(c),-ry);drawTile(tl,c,w.row);cx.restore()}
+    // the wall of water
+    const gr=cx.createLinearGradient(F-cell*2.2,0,F+4,0);gr.addColorStop(0,'rgba(47,134,184,0)');gr.addColorStop(.6,'rgba(63,160,205,.92)');gr.addColorStop(1,'#a9e6f7');
+    cx.fillStyle=gr;cx.beginPath();cx.moveTo(F-cell*2.2,top);for(let y=top;y<=bot;y+=4)cx.lineTo(F+Math.sin(y*.3+t*14)*cell*.08,y);cx.lineTo(F-cell*2.2,bot);cx.closePath();cx.fill();
+    for(let i=0;i<22;i++){const y=top+((i*0.618)%1)*(bot-top),x=F-((i*.37)%1)*cell*.6+Math.sin(y*.3+t*14)*cell*.08;cx.fillStyle='rgba(255,255,255,.95)';cx.beginPath();cx.arc(x,y,cell*(.045+((i*.29)%1)*.05),0,7);cx.fill()}
+    for(let i=0;i<14;i++){const q=((t*2+i*.173)%1);cx.fillStyle='rgba(255,255,255,'+.8*(1-q)+')';cx.beginPath();cx.arc(F+cell*.08+q*cell*.5,top+((i*.43)%1)*(bot-top)-q*cell*.15,cell*.03,0,7);cx.fill()}
+  }else if(w.ph===2){
+    const a=Math.max(0,1-(T-WV.IND-WV.WAVE)/4);cx.fillStyle='rgba(255,255,255,'+a*.22+')';rr(ox,ry-cell/2+2,COLS*cell,cell-4,cell*.2);cx.fill();
+  }
+  // the pop ring when a tile returns
+  if(w.ph===3)for(let c=0;c<COLS;c++){const q=(T-waveRet(c))/.45;if(q>=0&&q<1){cx.strokeStyle='rgba(255,255,255,'+(1-q)*.9+')';cx.lineWidth=3;cx.beginPath();cx.arc(cxOf(c),ry,cell*.3+q*cell*.3,0,7);cx.stroke()}}
 }
 
 // ---- drawing ----
@@ -1257,6 +1710,7 @@ function drawOtter(){
   const nx=o.c+DX[o.e],ny=o.r+DY[o.e];
   // crossing the pond edge: past the halfway point the otter reappears on the far side (never drawn twice)
   if(o.p>=.5&&(nx<0||nx>=COLS||ny<0||ny>=ROWS)){x-=DX[o.e]*COLS*cell;y-=DY[o.e]*ROWS*cell}
+  if(o.swept){x=o.swept.x;y=o.swept.y-Math.abs(Math.sin(o.swept.rot*.6))*cell*.25;const a0=o.a;o.a=a0+o.swept.rot;otterAt(x,y);o.a=a0;return}
   if(slowT>0){                   // snail power-up active: golden glow
     const p=1+.12*Math.sin(t*6),gr=cx.createRadialGradient(x,y,cell*.1,x,y,cell*.8*p);
     gr.addColorStop(0,'rgba(255,225,90,.55)');gr.addColorStop(1,'rgba(255,225,90,0)');
@@ -1347,7 +1801,7 @@ function drawCount(){
   cx.strokeStyle='#fff';cx.lineWidth=3;cx.stroke();
   cx.textAlign='center';cx.textBaseline='middle';
   cx.fillStyle='#fff';cx.font='bold 24px "Trebuchet MS",Verdana,sans-serif';cx.fillText(n,W/2,CY+1);
-  const s='Tap Otto the otter to turn him';
+  const s=dc?(dcReplay?'Watch the solution':'Cross every tile, finish on the buoy!'):'Tap Otto the otter to turn him';
   cx.font='bold 14px "Trebuchet MS",Verdana,sans-serif';
   const w=cx.measureText(s).width+24;
   cx.fillStyle='rgba(253,243,216,.95)';rr(W/2-w/2,60,w,24,12);cx.fill();
@@ -1365,7 +1819,11 @@ function frame(now){
   cx.strokeStyle='rgba(255,255,255,.22)';cx.lineWidth=2;cx.setLineDash([6,6]);
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(!grid[idx(c,r)]&&!logs.has(idx(c,r))){const h=cell/2-5;rr(cxOf(c)-h,cyOf(r)-h,2*h,2*h,cell*.2);cx.stroke()}
   cx.setLineDash([]);
-  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const g=grid[idx(c,r)];if(g)drawTile(g,c,r);else if(logs.has(idx(c,r)))drawLog(c,r)}
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const g=grid[idx(c,r)];if(g&&!(dc&&dcPuz&&idx(c,r)===dcPuz.path[dcPuz.N-1])){const sh=waveShake(c,r);if(sh){cx.save();cx.translate(sh,0);drawTile(g,c,r);cx.restore()}else drawTile(g,c,r)}else if(!g&&logs.has(idx(c,r))&&!(volc&&volc.i===idx(c,r)))drawLog(c,r)}
+  if(volc)drawVolcano();
+  if(wave)drawWave();
+  if(dc)drawBuoy();
+  if(dc&&dcReplay)drawDCNumbers();
   preview();
   drawOtter();
   drawCount();
@@ -1380,7 +1838,7 @@ function frame(now){
 
 // ---- input: tap a current tile to rotate it ----
 cv.addEventListener('pointerdown',e=>{
-  if(!running||tutOn)return;
+  if(!running||tutOn||dcReplay)return;
   const c=Math.floor((e.clientX-ox)/cell),r=Math.floor((e.clientY-oy)/cell);
   if(!inb(c,r))return;
   const g=grid[idx(c,r)];
@@ -1395,7 +1853,18 @@ $('buy').addEventListener('click',()=>{
   $('overlay').classList.add('hide');
   ['hud','restart','pause','ff','snail'].forEach(id=>$(id).classList.remove('hide'));
 });
+function toast(m){const e=document.createElement('div');e.className='rtoast';e.style.borderColor='#4f94bd';e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),2300)}
+$('share').addEventListener('click',async()=>{
+  const link=/^https?:/.test(location.protocol)?location.href.split('?')[0]:'';
+  const text=shareText+(link?'\n'+link:'');
+  try{if(navigator.share){await navigator.share({text});return}}catch(e){if(e&&e.name==='AbortError')return}
+  try{await navigator.clipboard.writeText(text);toast('Copied! Paste it anywhere to share.')}catch(e){
+    const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');toast('Copied! Paste it anywhere to share.')}catch(_){toast('Sharing is not available here')}ta.remove();
+  }
+});
 $('go').addEventListener('click',()=>{
+  if(mode==='dcend'){dcSolution();return}
   audio();
   musicStart();$('mute').classList.remove('hide');$('mmute').classList.remove('hide');
   if(mode==='next'||mode==='retry')spawn();else init();
@@ -1441,24 +1910,44 @@ applyDark();
 $('ff').addEventListener('click',()=>{ff=!ff;$('ff').classList.toggle('on',ff)});   // toggle: Otto swims 50% faster
 $('resume').addEventListener('click',()=>setPause(false));
 // ---- main menu and modes ----
-function startMode(z){
-  zen=z;
+function startMode(z,d){
+  zen=z;dc=!!d;
+  if(!testMode)countPref(z?'zenbtn':d?'dcbtn':'newgame');
   audio();musicStart();
   $('menu').classList.add('hide');$('overlay').classList.add('hide');
   $('mute').classList.remove('hide');$('mmute').classList.remove('hide');
   init();mode='start';running=true;
   $('hud').classList.remove('hide');$('restart').classList.remove('hide');$('pause').classList.remove('hide');$('ff').classList.remove('hide');$('snail').classList.remove('hide');
+  if(dc)$('snail').classList.add('hide')   // the Daily Challenge has fast forward but no snail power-up
+  
+}
+const localDay=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const todayBest=()=>{try{const v=JSON.parse(localStorage.getItem('ottoDayBest')||'null');return v&&v.day===localDay()?v.s||0:0}catch(e){return 0}};
+function dcAttemptedToday(){return dcDoneToday()||lsGet('ottoDCAtt',{}).day===dcDate()}
+function dcDoneToday(){const v=lsGet('ottoDC',null);return !!(v&&v.day===dcDate()&&v.win)}   // today's Daily Challenge has been completed
+function paintBest(){const t=todayBest(),f=n=>n.toLocaleString('en-US');
+  {const d=dcAttemptedToday(),b=$('dcbtn');b.classList.toggle('done',d);b.textContent=d?'Daily Challenge ✓':'Daily Challenge'}   // the check mark shows once today's challenge has been attempted
+  $('mbest').innerHTML=best?'All-time High Score: '+f(best)+(t?'<br>Today\'s High Score: '+f(t):''):'';}
+const countPref=id=>{const p=lsGet('ottoPref',{});p[id]=(p[id]||0)+1;p.last=id;lsSet('ottoPref',p)};
+function prefMode(){   // the mode played most often (a tie goes to the one played most recently)
+  const p=lsGet('ottoPref',{}),ids=dcAttemptedToday()?['newgame','zenbtn']:['newgame','zenbtn','dcbtn'];let m=0;   // once today's Daily Challenge is done, its rocks stop shaking and the next favourite takes over
+  ids.forEach(i=>{m=Math.max(m,p[i]||0)});
+  if(!m)return null;const top=ids.filter(i=>(p[i]||0)===m);return top.includes(p.last)?p.last:top[0];
 }
 function toMenu(){
-  setPause(false);
+  volcSnd.stop();setPause(false);dc=false;dcReplay=false;
   clearTimeout(popT);clearTimeout(armT);
   running=false;
   $('restart').classList.remove('arm');$('restart').textContent='Restart';
   ['hud','restart','pause','ff','snail','letgo','overlay','setup'].forEach(id=>$(id).classList.add('hide'));
-  $('mbest').textContent=best?'High Score: '+best.toLocaleString('en-US'):'';
+  $('share').classList.add('hide');$('dcagain').classList.add('hide');
+  $('go').classList.remove('hide');
+  paintBest();
   $('menu').classList.remove('hide');
+  paintNew();startMenuLoop();setTimeout(showAch,250);
 }
 $('newgame').addEventListener('click',()=>{testMode=false;startMode(false)});
+$('dcbtn').addEventListener('click',()=>{testMode=false;startDC()});
 const Rocks=(()=>{
 const R_NAMES=['','Common','Uncommon','Rare','Epic','Legendary'];
 const ROCKS=[
@@ -1522,6 +2011,13 @@ const ROCKS=[
  {n:'Dreaming Pebble',r:4,deco:'dream',zenOnly:true,base:'#b4cfdc',dark:'#86a5b6',light:'#e6f3f9',seed:61,pts:8,d:'A round, pale blue pebble that is fast asleep. Tiny Zs drift up while it dreams of calm water.',f:['Origin: A sunny, windless shore','Quirk: Snores very quietly']},
  /* ---- LEGENDARY (1) ---- */
  {n:'Heart of the Sun',r:5,deco:'sun',base:'#f2a53a',dark:'#c26f1c',light:'#ffe08a',seed:51,pts:10,d:'Warm orange stone with rays of light radiating from its core. Otters say there is only one.',f:['Origin: The first sunrise','Quirk: Warm all day, brighter at dawn']}
+ ,{n:'Daily Pebble',r:1,dcOnly:true,deco:'tick',base:'#a7aeb4',dark:'#737b82',light:'#dde3e8',seed:203,pts:8,d:'Plain grey, with a little green tick. It has never missed a day.',f:['Origin: The first challenge','Quirk: Always on time']}
+ ,{n:'Tile Chip',r:1,dcOnly:true,deco:'arrowc',base:'#a9cde0',dark:'#5f8fae',light:'#e3f3fb',seed:201,pts:9,d:'A pale blue chip knocked off a corner tile. The arrow is still etched in.',f:['Origin: A crowded shoreline','Quirk: Remembers two days']}
+ ,{n:'Maze Stone',r:2,dcOnly:true,deco:'maze',base:'#c8b98a',dark:'#7e6f3c',light:'#efe3bb',seed:223,pts:9,d:'Sand-colored, with a tiny maze cut into its face. Only one way through.',f:['Origin: A week of puzzles','Quirk: Fits one route']}
+ ,{n:'Tidal Clock Stone',r:3,dcOnly:true,deco:'clock',base:'#5f86a8',dark:'#3a5c7c',light:'#a9c9e2',seed:231,pts:9,d:'A blue stone with a working clock face. Its red hand sweeps once per tide.',f:['Origin: The deep channel','Quirk: Keeps perfect time']}
+ ,{n:'Solver Opal',r:4,dcOnly:true,deco:'bulb',base:'#efe8f6',dark:'#c6c1ee',light:'#ffffff',seed:245,pts:10,d:'Milky stone with a tiny bulb that lights up the moment a puzzle clicks.',f:['Origin: A hundred good ideas','Quirk: Lights up on its own']}
+ ,{n:'Streak Star',r:5,dcOnly:true,deco:'streak',base:'#e8892e',dark:'#b5561a',light:'#ffd08a',seed:251,pts:10,d:'A burning stone for the player who never misses a day.',f:['Origin: A whole year of tides','Quirk: Burns brighter every day']}
+ ,{n:'Heart of the Tide',r:5,dcOnly:true,deco:'tide',base:'#2e86b8',dark:'#175a86',light:'#9fe0ff',seed:255,pts:10,d:'A swirling blue stone holding the whole sea in one slow spiral.',f:['Origin: Where every current meets','Quirk: Full of surprises']}
 ];
 /* ---------- drawing ---------- */
 const RARC=['','#cfd8dc','#4fd37a','#4aa3ff','#b46cff','#ff9a1f'];   // outline / glow color per rarity
@@ -1600,6 +2096,14 @@ const DECO={
  mush(g,s,R){[[-.45,.1,.26],[.1,-.1,.34],[.5,.2,.22]].forEach(([x,y,r])=>{g.fillStyle='#f4ead6';g.fillRect(R*x-R*r*.2,R*y,R*r*.4,R*r*.7);g.fillStyle='#d9473a';g.beginPath();g.ellipse(R*x,R*y,R*r,R*r*.7,0,Math.PI,0);g.closePath();g.fill();g.fillStyle='#fff';g.beginPath();g.arc(R*x-R*r*.35,R*y-R*r*.3,R*r*.12,0,7);g.arc(R*x+R*r*.3,R*y-R*r*.35,R*r*.1,0,7);g.fill()})},
  bubble(g,s,R,det,ph){[[-.45,-.1,.2],[.1,-.35,.16],[.4,.1,.22],[-.1,.3,.14],[.55,-.4,.1],[-.5,.4,.1]].forEach(([x,y,r],i)=>{const w=det?Math.sin(ph*3+i)*R*.02:0;g.fillStyle='rgba(255,255,255,.35)';g.strokeStyle='rgba(255,255,255,.85)';g.lineWidth=R*.03;g.beginPath();g.arc(R*x,R*y+w,R*r,0,7);g.fill();g.stroke();g.fillStyle='#fff';g.beginPath();g.arc(R*x-R*r*.35,R*y-R*r*.35+w,R*r*.22,0,7);g.fill()})},
  plain(){},
+ arrowc(g,s,R){g.strokeStyle=s.dark;g.lineWidth=R*.13;g.lineCap='round';g.lineJoin='round';g.beginPath();g.moveTo(0,R*.55);g.lineTo(0,R*.05);g.lineTo(R*.5,R*.05);g.stroke();g.fillStyle=s.dark;g.beginPath();g.moveTo(R*.62,R*.05);g.lineTo(R*.38,-R*.14);g.lineTo(R*.38,R*.24);g.closePath();g.fill()},
+ tick(g,s,R){g.strokeStyle='#3fae5a';g.lineWidth=R*.15;g.lineCap='round';g.lineJoin='round';g.beginPath();g.moveTo(-R*.4,R*.1);g.lineTo(-R*.1,R*.4);g.lineTo(R*.45,-R*.3);g.stroke()},
+ maze(g,s,R){g.strokeStyle=s.dark;g.lineWidth=R*.07;g.lineCap='square';g.lineJoin='miter';g.beginPath();g.moveTo(-R*.55,-R*.4);g.lineTo(R*.5,-R*.4);g.lineTo(R*.5,R*.45);g.lineTo(-R*.4,R*.45);g.lineTo(-R*.4,-R*.15);g.lineTo(R*.25,-R*.15);g.lineTo(R*.25,R*.2);g.lineTo(-R*.1,R*.2);g.stroke()},
+ clock(g,s,R,det,ph){g.fillStyle='#f4f1e6';g.strokeStyle=s.dark;g.lineWidth=R*.07;g.beginPath();g.arc(0,R*.02,R*.55,0,7);g.fill();g.stroke();for(let i=0;i<12;i++){const a=i/12*Math.PI*2;g.beginPath();g.moveTo(Math.sin(a)*R*.44,R*.02-Math.cos(a)*R*.44);g.lineTo(Math.sin(a)*R*.5,R*.02-Math.cos(a)*R*.5);g.stroke()}const t=det?ph:1;g.lineCap='round';g.lineWidth=R*.07;g.beginPath();g.moveTo(0,R*.02);g.lineTo(Math.sin(t*.25)*R*.3,R*.02-Math.cos(t*.25)*R*.3);g.stroke();g.lineWidth=R*.05;g.strokeStyle='#e9503a';g.beginPath();g.moveTo(0,R*.02);g.lineTo(Math.sin(t*3)*R*.42,R*.02-Math.cos(t*3)*R*.42);g.stroke()},
+ bulb(g,s,R,det,ph){const gl=.7+.3*(det?Math.sin(ph*3):1);g.fillStyle='rgba(255,246,170,'+(.7*gl)+')';g.strokeStyle='#8a7a22';g.lineWidth=R*.06;g.beginPath();g.arc(0,-R*.12,R*.34,Math.PI*.8,Math.PI*.2,false);g.lineTo(R*.14,R*.32);g.lineTo(-R*.14,R*.32);g.closePath();g.fill();g.stroke();g.fillStyle='#8a8f98';g.fillRect(-R*.14,R*.32,R*.28,R*.12);g.fillRect(-R*.1,R*.46,R*.2,R*.08);g.strokeStyle='#e08a2a';g.lineWidth=R*.05;g.beginPath();g.moveTo(-R*.1,R*.3);g.lineTo(-R*.1,R*.08);g.lineTo(0,-R*.02);g.lineTo(R*.1,R*.08);g.lineTo(R*.1,R*.3);g.stroke()},
+ streak(g,s,R,det,ph){g.fillStyle='#ff8a2a';g.shadowColor='#ff5a00';g.shadowBlur=R*(.3+(det?.1*Math.sin(ph*4):0));g.beginPath();g.moveTo(0,-R*.62);g.quadraticCurveTo(R*.5,-R*.1,R*.28,R*.3);g.quadraticCurveTo(R*.12,R*.55,0,R*.5);g.quadraticCurveTo(-R*.3,R*.45,-R*.34,R*.12);g.quadraticCurveTo(-R*.3,-R*.2,0,-R*.62);g.fill();g.shadowBlur=0;g.fillStyle='#ffd34a';g.beginPath();g.moveTo(0,-R*.2);g.quadraticCurveTo(R*.26,R*.08,R*.12,R*.34);g.quadraticCurveTo(0,R*.44,-R*.14,R*.3);g.quadraticCurveTo(-R*.2,R*.05,0,-R*.2);g.fill();g.fillStyle='#fff6c8';g.beginPath();g.ellipse(0,R*.28,R*.07,R*.1,0,0,7);g.fill()},
+ tide(g,s,R,det,ph){const o=det?ph*.8:0;g.strokeStyle='#bff0ff';g.lineWidth=R*.1;g.lineCap='round';g.shadowColor='#7fe0ff';g.shadowBlur=R*.3;for(let i=0;i<3;i++){g.beginPath();for(let a=0;a<Math.PI*1.7;a+=.15){const r=R*(.1+a*.1+i*.04),x=Math.cos(a+o+i*2.1)*r,y=Math.sin(a+o+i*2.1)*r;a?g.lineTo(x,y):g.moveTo(x,y)}g.stroke()}g.shadowBlur=0;g.fillStyle='#fff';g.beginPath();g.arc(0,0,R*.1,0,7);g.fill()},
+
  dream(g,s,R){g.strokeStyle='#2b3a40';g.lineWidth=R*.07;g.lineCap='round';
    [-.3,.3].forEach(x=>{g.beginPath();g.arc(R*x,R*.02,R*.13,Math.PI*.15,Math.PI*.85);g.stroke()});
    g.lineWidth=R*.05;g.beginPath();g.arc(0,R*.3,R*.1,Math.PI*.1,Math.PI*.9);g.stroke();
@@ -1644,7 +2148,12 @@ try{
 }catch(e){}
 let rockCounts={};try{rockCounts=JSON.parse(localStorage.getItem('ottoRocks')||'{}')||{}}catch(e){}
 const saveRocks=()=>{try{localStorage.setItem('ottoRocks',JSON.stringify(rockCounts))}catch(e){}};
-window.addRock=name=>{rockCounts[name]=(rockCounts[name]||0)+1;saveRocks();try{localStorage.removeItem('ottoFirstRock')}catch(e){}};   // call when a rock is picked up
+window.addRock=name=>{const first=!(rockCounts[name]>0);rockCounts[name]=(rockCounts[name]||0)+1;saveRocks();if(first)markNewRock(name);try{localStorage.removeItem('ottoFirstRock')}catch(e){}};   // call when a rock is picked up
+const lsGet=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||'null')||d}catch(e){return d}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+let menuNew=false;
+function paintNew(){menuNew=lsGet('ottoNewRocks',[]).length>0}
+function markNewRock(name){const a=lsGet('ottoNewRocks',[]);if(!a.includes(name)){a.push(name);lsSet('ottoNewRocks',a)}paintNew()}
 let colTab=1;
 try{const e=localStorage.getItem('ottoRockEquip');if(e&&rockCounts[e]>0)equipRock=e}catch(e){}
 function setEquip(n){equipRock=n;try{n?localStorage.setItem('ottoRockEquip',n):localStorage.removeItem('ottoRockEquip')}catch(e){}}
@@ -1669,26 +2178,90 @@ function paintCollection(){
       g.fillStyle='rgba(60,80,80,.38)';g.fill();
     }
     d.appendChild(c);
-    const nm=document.createElement('b');nm.textContent=n>0?s.n:s.zenOnly?'(Only in Zen Mode)':'';d.appendChild(nm);
+    const nm=document.createElement('b');nm.textContent=n>0?s.n:s.zenOnly?'(Only in Zen Mode)':s.dcOnly?'(Only in Daily Challenge)':'';d.appendChild(nm);
     const ct=document.createElement('em');ct.textContent=n>0?'×'+n:'';d.appendChild(ct);
     if(n>0)d.addEventListener('click',()=>{setEquip(equipRock===s.n?null:s.n);paintCollection()});
     grid.appendChild(d);
   });
 }
-$('colbtn').addEventListener('click',()=>{$('menu').classList.add('hide');$('colsel').classList.remove('hide');paintCollection()});
+$('colbtn').addEventListener('click',()=>{lsSet('ottoNewRocks',[]);paintNew();$('menu').classList.add('hide');$('colsel').classList.remove('hide');paintCollection()});
 {let taps=[];$('ver').addEventListener('click',()=>{const n=Date.now();taps=taps.filter(x=>n-x<1200);taps.push(n);
-  if(taps.length>=3){taps=[];if(confirm('Reset the whole Rock Collection to 0 on this device?')){rockCounts={};saveRocks();setEquip(null);try{localStorage.removeItem('ottoRocks')}catch(e){}}}})}
+  if(taps.length>=3){taps=[];if(confirm('Reset the whole Rock Collection to 0 on this device?')){rockCounts={};saveRocks();setEquip(null);lsSet('ottoNewRocks',[]);lsSet('ottoAch',[]);paintNew();try{localStorage.removeItem('ottoRocks')}catch(e){}}}})}
 $('patchbtn').addEventListener('click',()=>{$('menu').classList.add('hide');$('patchsel').classList.remove('hide')});
 $('patchback').addEventListener('click',()=>{$('patchsel').classList.add('hide');$('menu').classList.remove('hide')});
 $('colback').addEventListener('click',()=>{$('colsel').classList.add('hide');$('menu').classList.remove('hide')});
+// ---- Daily Challenge rewards: rocks earned by playing, shown as a popup when the player is back on the main menu ----
+const ACH_WHY={'Daily Pebble':'You completed your first Daily Challenge.','Tile Chip':'You played the Daily Challenge 2 days in a row.','Maze Stone':'You played the Daily Challenge 7 days in a row.','Tidal Clock Stone':'You played the Daily Challenge 30 days in a row.','Solver Opal':'You played the Daily Challenge 100 days in a row.','Streak Star':'You played the Daily Challenge 365 days in a row.','Heart of the Tide':'A surprise from the sea.'};
+const dayShift=(d,n)=>{const t=new Date(d+'T12:00:00Z');t.setUTCDate(t.getUTCDate()+n);return t.toISOString().slice(0,10)};
+function dcAwards(day,win){
+  const days=lsGet('ottoDCDays',[]);
+  if(!days.includes(day)){days.push(day);days.sort();lsSet('ottoDCDays',days.slice(-400))}
+  let streak=0,d=day;while(days.includes(d)){streak++;d=dayShift(d,-1)}
+  const earn=['Daily Pebble'];
+  if(streak>=2)earn.push('Tile Chip');if(streak>=7)earn.push('Maze Stone');if(streak>=30)earn.push('Tidal Clock Stone');if(streak>=100)earn.push('Solver Opal');if(streak>=365)earn.push('Streak Star');
+  if(win)earn.push('Heart of the Tide');
+  const pend=lsGet('ottoAch',[]);
+  earn.forEach(n=>{if(!(rockCounts[n]>0)){addRock(n);pend.push(n)}});
+  lsSet('ottoAch',pend);
+}
+let achT=0;
+function showAch(){
+  const pend=lsGet('ottoAch',[]);
+  if(!pend.length||$('menu').classList.contains('hide')){return}
+  const spec=Rocks.ROCKS.find(x=>x.n===pend[0]);
+  if(!spec){lsSet('ottoAch',pend.slice(1));return showAch()}
+  $('achname').textContent=spec.n;$('achrar').textContent=Rocks.R_NAMES[spec.r];$('achrar').style.color=ROCK_TAB_COL[spec.r];
+  $('achwhy').textContent=ACH_WHY[spec.n]||'';
+  $('achpop').classList.remove('hide');
+  const g=$('achcv').getContext('2d');
+  cancelAnimationFrame(achT);
+  const loop=ms=>{g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,300,300);g.translate(150,148);Rocks.drawRock(g,spec,84,{detail:true,t:ms/1000});if(!$('achpop').classList.contains('hide'))achT=requestAnimationFrame(loop)};
+  achT=requestAnimationFrame(loop);
+  SFX.rock();
+}
+$('achok').addEventListener('click',()=>{lsSet('ottoAch',lsGet('ottoAch',[]).slice(1));$('achpop').classList.add('hide');setTimeout(showAch,200)});
+// ---- Main menu flair: each button is flanked by a rock that suits it ----
+const menuRocks=[];let menuLoopOn=false;
+(function(){
+  const PICK={newgame:'Ember Rock',zenbtn:'Moonstone',dcbtn:'Daily Pebble',infobtn:'Rune Stone',colbtn:'Geode',patchbtn:'Fossil Rock',testbtn:'Pyrite'};
+  Object.keys(PICK).forEach((id,k)=>{
+    const b=$(id),spec=Rocks.ROCKS.find(x=>x.n===PICK[id]);if(!b||!spec)return;
+    const row=document.createElement('div');row.className='mrow';
+    b.parentNode.insertBefore(row,b);
+    [1,-1].forEach(side=>{
+      const c=document.createElement('canvas');c.width=c.height=88;c.setAttribute('aria-hidden','true');
+      menuRocks.push({id,c,side,spec,moved:true});
+      row.appendChild(c);if(side===1)row.appendChild(b);
+    });
+  });
+})();
+function menuRockFrame(ms){
+  menuLoopOn=false;if($('menu').classList.contains('hide')){startMenuLoop();return}
+  // a brand-new player is nudged to How to Play; once they've looked and left, to New Game; after that, their favourite mode
+  let pm=prefMode();
+  if(!pm)pm=(!best&&noRocks()&&!lsGet('ottoSeenHow',0))?'infobtn':'newgame';
+  const t=ms/1000;
+  menuRocks.forEach(o=>{
+    const on=o.id===pm||(o.id==='colbtn'&&menuNew);
+    const ph=on?t%3:0,k=ph>=2?ph-2:0,env=on&&ph>=2?Math.sin(k*Math.PI):0;
+    if(!env&&!o.moved)return;o.moved=env>0;   // redraw only while shaking, plus one last time to settle
+    const g=o.c.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,88,88);g.translate(44,42);g.scale(o.side,1);
+    g.translate(Math.sin(k*46)*26*.05*2*env,0);g.rotate(Math.sin(k*40+1)*.14*env);
+    Rocks.drawRock(g,o.spec,26,{detail:false,t:0});
+  });
+  startMenuLoop();
+}
+function startMenuLoop(){if(!menuLoopOn){menuLoopOn=true;requestAnimationFrame(menuRockFrame)}}
+paintNew();startMenuLoop();
 // ---- Test Mode (temporary): jump straight to level 1-9 of New Game ----
 $('testbtn').addEventListener('click',()=>{$('menu').classList.add('hide');$('testsel').classList.remove('hide')});
 $('testback').addEventListener('click',()=>{$('testsel').classList.add('hide');$('menu').classList.remove('hide')});
 document.querySelectorAll('#tcard [data-lv]').forEach(b=>b.addEventListener('click',()=>{
   const n=+b.dataset.lv;
   $('testsel').classList.add('hide');
-  startMode(false);testMode=true;
-  level=n;levelStart=clams;qDone=false;heartTaken=false;
+  {const pf=lsGet('ottoPref',{});startMode(false);lsSet('ottoPref',pf)}testMode=true;   // test games don't count toward the favourite mode
+  
+  kindLv=0;level=n;levelStart=clams;qDone=false;heartTaken=false;
   spawn();hud();
 }));
 // ---- main menu: Otto swims laps around the menu card ----
@@ -1751,7 +2324,6 @@ function inIcon(id,fn){
 function drawInfo(){
   inIcon('i_otter',()=>{otter={a:0,e:0,p:0};handOff=true;try{otterAt(64,53)}finally{handOff=false}});
   inIcon('i_tile',()=>drawTile({t:'c',rot:0,a:0,s:1,clam:false},0,0));
-  inIcon('i_boost',()=>drawTile({t:'s',rot:0,a:0,s:1,clam:false,boost:true},0,0));
   inIcon('i_gold',()=>drawTile({t:'x',rot:0,a:0,s:1,clam:false,gold:true},0,0));
   inIcon('i_empty',g=>{
     g.strokeStyle='rgba(255,255,255,.6)';g.lineWidth=3;g.setLineDash([9,9]);
@@ -1761,8 +2333,14 @@ function drawInfo(){
   inIcon('i_heart',()=>{cx.save();cx.translate(64,62);drawHeart(42);cx.restore()});
   inIcon('i_mystery',()=>{cx.save();cx.translate(64,64);drawMystery(42);cx.restore()});
   inIcon('i_wood',()=>drawLog(0,0));
+  inIcon('i_volc',g=>{const half=60/128*100;Volc.drawAll(g,64,64,128,0,3.2,3.2,{half,alive:()=>true,dead:()=>false,alive2:()=>true})});
+  inIcon('i_wave',g=>{   // a wall of water with foam, and the blue warning chevrons
+    const gr=g.createLinearGradient(8,0,112,0);gr.addColorStop(0,'rgba(47,134,184,.15)');gr.addColorStop(.6,'rgba(63,160,205,.95)');gr.addColorStop(1,'#a9e6f7');
+    g.fillStyle=gr;g.beginPath();g.moveTo(8,22);for(let y=22;y<=106;y+=4)g.lineTo(100+Math.sin(y*.3)*5,y);g.lineTo(8,106);g.closePath();g.fill();
+    g.fillStyle='rgba(255,255,255,.95)';for(let i=0;i<14;i++){g.beginPath();g.arc(100-((i*.37)%1)*34+Math.sin(i)*3,26+((i*.618)%1)*76,3+((i*.29)%1)*4,0,7);g.fill()}
+    g.strokeStyle='rgba(70,165,255,1)';g.lineWidth=7;g.lineCap='round';g.lineJoin='round';for(let i=0;i<3;i++){const x=14+i*14;g.beginPath();g.moveTo(x,50);g.lineTo(x+9,64);g.lineTo(x,78);g.stroke()}});
 }
-$('infobtn').addEventListener('click',()=>{
+$('infobtn').addEventListener('click',()=>{lsSet('ottoSeenHow',1);
   $('tutbox2').checked=tutWanted();
   $('menu').classList.add('hide');$('info').classList.remove('hide');$('info').scrollTop=0;
   $('mute').classList.add('hide');$('mmute').classList.add('hide');
@@ -1794,9 +2372,10 @@ $('setupback').addEventListener('click',()=>{
 });
 $('tomenu').addEventListener('click',toMenu);
 $('menu2').addEventListener('click',toMenu);
+$('dcagain').addEventListener('click',()=>{$('dcagain').classList.add('hide');dcReplay=false;startDC()});
 $('tut').addEventListener('pointerdown',e=>{
   e.preventDefault();
-  if(tutStep===0&&running&&Math.floor((e.clientX-ox)/cell)===otter.c&&Math.floor((e.clientY-oy)/cell)===otter.r)otter.e=(otter.e+1)%4;   // tapping Otto in step 1 really turns him
+  if(!dc&&!tutHaz&&tutStep===0&&running&&Math.floor((e.clientX-ox)/cell)===otter.c&&Math.floor((e.clientY-oy)/cell)===otter.r)otter.e=(otter.e+1)%4;   // tapping Otto in step 1 really turns him
   tutStep++;
   if(tutStep>=TUT.length)tutEnd(true);else tutShow();
 });
@@ -1826,10 +2405,9 @@ addEventListener('resize',resize);
 resize();
 for(let i=0;i<20;i++)ripples.push({x:R(0,W),y:R(0,H),w:R(18,40)});
 $('best').textContent=best?'Best: '+best:'';
-$('mbest').textContent=best?'High Score: '+best.toLocaleString('en-US'):'';
+paintBest();
 drawClam(28,29,18,0,$('sico').getContext('2d'));   // same clam as on the board, shrunk for the score
 init();requestAnimationFrame(frame);
 </script>
-<script>if('serviceWorker' in navigator&&location.protocol!=='file:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))</script>
 </body>
 </html>
